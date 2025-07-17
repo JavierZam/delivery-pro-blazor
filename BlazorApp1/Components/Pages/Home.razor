@@ -1,9 +1,149 @@
-﻿@page "/"
+@page "/"
+@inject IProductService ProductService
+@inject ICartService CartService
 
-<PageTitle>Home</PageTitle>
+<PageTitle>DeliveryPro - Fast Food Delivery</PageTitle>
 
-<h1>Hello, world!</h1>
+<div class="animate-fade-in">
+    <!-- Hero Section -->
+    <section class="relative bg-gradient-to-br from-primary-600 to-primary-800 text-white">
+        <div class="absolute inset-0 bg-black opacity-10"></div>
+        <div class="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16 sm:py-20 lg:py-24">
+            <div class="text-center">
+                <h1 class="text-3xl sm:text-4xl md:text-6xl font-bold mb-4 sm:mb-6 animate-slide-down leading-tight">
+                    Fast Food <span class="text-gradient block sm:inline">Delivery</span>
+                </h1>
+                <p class="text-lg sm:text-xl md:text-2xl mb-6 sm:mb-8 text-primary-100 animate-slide-up px-4">
+                    Your favorite meals delivered in 30 minutes or less
+                </p>
+                <div class="flex flex-col sm:flex-row gap-3 sm:gap-4 justify-center animate-bounce-in px-4">
+                    <a href="/menu" class="btn btn-primary bg-white text-primary-600 hover:bg-gray-100 px-6 sm:px-8 py-3 sm:py-4 text-base sm:text-lg w-full sm:w-auto text-center">
+                        🍕 Order Now
+                    </a>
+                    <button class="btn btn-outline border-white text-white hover:bg-white hover:text-primary-600 px-6 sm:px-8 py-3 sm:py-4 text-base sm:text-lg w-full sm:w-auto pwa-install-btn">
+                        📱 Install App
+                    </button>
+                </div>
+            </div>
+        </div>
+    </section>
 
-Welcome to your new app.
+    <!-- Features Section -->
+    <section class="py-12 sm:py-16 lg:py-20 bg-white">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="text-center mb-12 sm:mb-16">
+                <h2 class="text-2xl sm:text-3xl md:text-4xl font-bold text-gray-900 mb-4">Why Choose DeliveryPro?</h2>
+                <p class="text-lg sm:text-xl text-gray-600">Experience the future of food delivery</p>
+            </div>
+            
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 sm:gap-8">
+                <div class="card p-6 sm:p-8 text-center animate-slide-up">
+                    <div class="w-14 h-14 sm:w-16 sm:h-16 bg-primary-100 rounded-full flex items-center justify-center mx-auto mb-4 sm:mb-6">
+                        <span class="text-2xl sm:text-3xl">⚡</span>
+                    </div>
+                    <h3 class="text-lg sm:text-xl font-semibold mb-3 sm:mb-4">Lightning Fast</h3>
+                    <p class="text-gray-600 text-sm sm:text-base">Average delivery time of 25 minutes with real-time tracking</p>
+                </div>
+                
+                <div class="card p-6 sm:p-8 text-center animate-slide-up" style="animation-delay: 0.1s">
+                    <div class="w-14 h-14 sm:w-16 sm:h-16 bg-primary-100 rounded-full flex items-center justify-center mx-auto mb-4 sm:mb-6">
+                        <span class="text-2xl sm:text-3xl">📱</span>
+                    </div>
+                    <h3 class="text-lg sm:text-xl font-semibold mb-3 sm:mb-4">Offline Ready</h3>
+                    <p class="text-gray-600 text-sm sm:text-base">Browse menus and place orders even without internet connection</p>
+                </div>
+                
+                <div class="card p-6 sm:p-8 text-center animate-slide-up sm:col-span-2 lg:col-span-1" style="animation-delay: 0.2s">
+                    <div class="w-14 h-14 sm:w-16 sm:h-16 bg-primary-100 rounded-full flex items-center justify-center mx-auto mb-4 sm:mb-6">
+                        <span class="text-2xl sm:text-3xl">🏆</span>
+                    </div>
+                    <h3 class="text-lg sm:text-xl font-semibold mb-3 sm:mb-4">Premium Quality</h3>
+                    <p class="text-gray-600 text-sm sm:text-base">Handpicked restaurants with 4.5+ star ratings</p>
+                </div>
+            </div>
+        </div>
+    </section>
 
-<Counter/>
+    <!-- Popular Categories -->
+    <section class="py-12 sm:py-16 lg:py-20 bg-gray-50">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="text-center mb-12 sm:mb-16">
+                <h2 class="text-2xl sm:text-3xl md:text-4xl font-bold text-gray-900 mb-4">Popular Categories</h2>
+                <p class="text-lg sm:text-xl text-gray-600">What are you craving today?</p>
+            </div>
+            
+            <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4 sm:gap-6">
+                @foreach (var category in GetPopularCategories())
+                {
+                    <a href="/menu" class="card p-4 sm:p-6 text-center hover:shadow-lg transition-all duration-300 cursor-pointer group active:scale-95 block text-decoration-none">
+                        <div class="text-3xl sm:text-4xl mb-2 sm:mb-3 group-hover:scale-110 transition-transform">@category.Icon</div>
+                        <h3 class="font-semibold text-gray-900 text-sm sm:text-base">@category.Name</h3>
+                        <p class="text-xs sm:text-sm text-gray-500">@category.Count+ options</p>
+                    </a>
+                }
+            </div>
+        </div>
+    </section>
+
+    <!-- Statistics -->
+    <section class="py-12 sm:py-16 lg:py-20 bg-primary-600 text-white">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-6 sm:gap-8 text-center">
+                <div class="animate-scale-in">
+                    <div class="text-3xl sm:text-4xl font-bold mb-2">50K+</div>
+                    <p class="text-primary-200 text-sm sm:text-base">Happy Customers</p>
+                </div>
+                <div class="animate-scale-in" style="animation-delay: 0.1s">
+                    <div class="text-3xl sm:text-4xl font-bold mb-2">200+</div>
+                    <p class="text-primary-200 text-sm sm:text-base">Partner Restaurants</p>
+                </div>
+                <div class="animate-scale-in" style="animation-delay: 0.2s">
+                    <div class="text-3xl sm:text-4xl font-bold mb-2">25min</div>
+                    <p class="text-primary-200 text-sm sm:text-base">Average Delivery</p>
+                </div>
+                <div class="animate-scale-in" style="animation-delay: 0.3s">
+                    <div class="text-3xl sm:text-4xl font-bold mb-2">4.9★</div>
+                    <p class="text-primary-200 text-sm sm:text-base">Customer Rating</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- CTA Section -->
+    <section class="py-12 sm:py-16 lg:py-20 bg-white">
+        <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+            <h2 class="text-2xl sm:text-3xl md:text-4xl font-bold text-gray-900 mb-4 sm:mb-6">Ready to Order?</h2>
+            <p class="text-lg sm:text-xl text-gray-600 mb-6 sm:mb-8">Join thousands of satisfied customers and get your favorite food delivered fast!</p>
+            <div class="flex flex-col sm:flex-row gap-3 sm:gap-4 justify-center">
+                <a href="/menu" class="btn btn-primary px-6 sm:px-8 py-3 sm:py-4 text-base sm:text-lg w-full sm:w-auto text-center">
+                    🍕 Browse Menu
+                </a>
+                <button class="btn btn-outline px-6 sm:px-8 py-3 sm:py-4 text-base sm:text-lg w-full sm:w-auto">
+                    📍 Check Delivery Area
+                </button>
+            </div>
+        </div>
+    </section>
+</div>
+
+@code {
+    private class Category
+    {
+        public string Name { get; set; } = "";
+        public string Icon { get; set; } = "";
+        public int Count { get; set; }
+    }
+
+    private List<Category> GetPopularCategories()
+    {
+        return new List<Category>
+        {
+            new() { Name = "Pizza", Icon = "🍕", Count = 25 },
+            new() { Name = "Burgers", Icon = "🍔", Count = 18 },
+            new() { Name = "Sushi", Icon = "🍣", Count = 12 },
+            new() { Name = "Chinese", Icon = "🥡", Count = 22 },
+            new() { Name = "Indian", Icon = "🍛", Count = 15 },
+            new() { Name = "Desserts", Icon = "🍰", Count = 30 }
+        };
+    }
+}

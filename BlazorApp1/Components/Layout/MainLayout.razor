@@ -1,23 +1,215 @@
-﻿@inherits LayoutComponentBase
+@inherits LayoutComponentBase
+@inject IAuthService AuthService
+@implements IDisposable
 
-<div class="page">
-    <div class="sidebar">
-        <NavMenu />
-    </div>
+<div class="min-h-screen bg-gray-50">
+    <header class="bg-white shadow-sm border-b border-gray-200 sticky top-0 z-50">
+        <nav class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between items-center h-16">
+                <!-- Logo -->
+                <div class="flex items-center">
+                    <a href="/" class="flex items-center space-x-2">
+                        <div class="w-8 h-8 bg-primary-600 rounded-lg flex items-center justify-center">
+                            <span class="text-white font-bold text-sm">DP</span>
+                        </div>
+                        <span class="text-xl font-bold text-gray-900">DeliveryPro</span>
+                    </a>
+                </div>
+                
+                <!-- Desktop Navigation -->
+                <div class="hidden md:flex items-center space-x-8">
+                    <a href="/" class="text-gray-600 hover:text-primary-600 transition-colors">Home</a>
+                    <a href="/menu" class="text-gray-600 hover:text-primary-600 transition-colors">Menu</a>
+                    <a href="/orders" class="text-gray-600 hover:text-primary-600 transition-colors">Orders</a>
+                    <a href="/track" class="text-gray-600 hover:text-primary-600 transition-colors">Track</a>
+                </div>
+                
+                <!-- Desktop Buttons -->
+                <div class="hidden md:flex items-center space-x-3">
+                    <CartIcon OnClick="ToggleCartDrawer" />
+                    
+                    @if (currentUser != null)
+                    {
+                        <!-- Authenticated User -->
+                        <div class="flex items-center space-x-3">
+                            <span class="text-sm text-gray-700">Hi, @currentUser.FirstName</span>
+                            <button @onclick="HandleLogout" class="btn btn-outline px-4 py-2">Sign Out</button>
+                        </div>
+                    }
+                    else
+                    {
+                        <!-- Guest User -->
+                        <a href="/signin" class="btn btn-outline px-4 py-2">Sign In</a>
+                        <a href="/menu" class="btn btn-primary px-4 py-2">Order Now</a>
+                    }
+                </div>
 
-    <main>
-        <div class="top-row px-4">
-            <a href="https://learn.microsoft.com/aspnet/core/" target="_blank">About</a>
-        </div>
+                <!-- Mobile Cart & Menu -->
+                <div class="md:hidden flex items-center space-x-2">
+                    <CartIcon OnClick="ToggleCartDrawer" />
+                    <button @onclick="ToggleMobileMenu" 
+                            class="p-2 rounded-md text-gray-600 hover:text-primary-600 hover:bg-gray-100 transition-colors">
+                        @if (isMobileMenuOpen)
+                        {
+                            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                            </svg>
+                        }
+                        else
+                        {
+                            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path>
+                            </svg>
+                        }
+                    </button>
+                </div>
+            </div>
 
-        <article class="content px-4">
-            @Body
-        </article>
+            <!-- Mobile Navigation Menu -->
+            @if (isMobileMenuOpen)
+            {
+                <div class="md:hidden absolute top-16 left-0 right-0 bg-white border-b border-gray-200 shadow-lg animate-slide-down">
+                    <div class="px-4 py-6 space-y-4">
+                        <a href="/" @onclick="CloseMobileMenu" 
+                           class="block text-gray-900 hover:text-primary-600 transition-colors py-2 text-lg">
+                            🏠 Home
+                        </a>
+                        <a href="/menu" @onclick="CloseMobileMenu" 
+                           class="block text-gray-900 hover:text-primary-600 transition-colors py-2 text-lg">
+                            🍽️ Menu
+                        </a>
+                        <a href="/orders" @onclick="CloseMobileMenu" 
+                           class="block text-gray-900 hover:text-primary-600 transition-colors py-2 text-lg">
+                            📦 My Orders
+                        </a>
+                        <a href="/track" @onclick="CloseMobileMenu" 
+                           class="block text-gray-900 hover:text-primary-600 transition-colors py-2 text-lg">
+                            📍 Track Order
+                        </a>
+                        
+                        <div class="pt-4 border-t border-gray-200 space-y-3">
+                            @if (currentUser != null)
+                            {
+                                <!-- Authenticated Mobile Menu -->
+                                <div class="text-center py-2">
+                                    <p class="text-gray-700 font-medium">Hi, @currentUser.FirstName!</p>
+                                </div>
+                                <button @onclick="HandleLogout" class="btn btn-outline w-full">Sign Out</button>
+                                <a href="/menu" @onclick="CloseMobileMenu" class="btn btn-primary w-full text-center block">Order Now</a>
+                            }
+                            else
+                            {
+                                <!-- Guest Mobile Menu -->
+                                <a href="/signin" @onclick="CloseMobileMenu" class="btn btn-outline w-full text-center block">Sign In</a>
+                                <a href="/menu" @onclick="CloseMobileMenu" class="btn btn-primary w-full text-center block">Order Now</a>
+                            }
+                        </div>
+                    </div>
+                </div>
+            }
+        </nav>
+    </header>
+
+    <main class="flex-1">
+        @Body
     </main>
+
+    <footer class="bg-gray-900 text-white">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-8">
+                <div class="col-span-1">
+                    <div class="flex items-center space-x-2 mb-4">
+                        <div class="w-8 h-8 bg-primary-600 rounded-lg flex items-center justify-center">
+                            <span class="text-white font-bold text-sm">DP</span>
+                        </div>
+                        <span class="text-xl font-bold">DeliveryPro</span>
+                    </div>
+                    <p class="text-gray-400">Fast, reliable food delivery at your fingertips.</p>
+                </div>
+                
+                <div>
+                    <h3 class="font-semibold mb-4">Quick Links</h3>
+                    <ul class="space-y-2 text-gray-400">
+                        <li><a href="/menu" class="hover:text-white transition-colors">Menu</a></li>
+                        <li><a href="/orders" class="hover:text-white transition-colors">Orders</a></li>
+                        <li><a href="/track" class="hover:text-white transition-colors">Track Order</a></li>
+                    </ul>
+                </div>
+                
+                <div>
+                    <h3 class="font-semibold mb-4">Support</h3>
+                    <ul class="space-y-2 text-gray-400">
+                        <li><a href="/help" class="hover:text-white transition-colors">Help Center</a></li>
+                        <li><a href="/contact" class="hover:text-white transition-colors">Contact Us</a></li>
+                        <li><a href="/faq" class="hover:text-white transition-colors">FAQ</a></li>
+                    </ul>
+                </div>
+                
+                <div>
+                    <h3 class="font-semibold mb-4">Contact</h3>
+                    <ul class="space-y-2 text-gray-400">
+                        <li>📞 +1 (555) 123-4567</li>
+                        <li>📧 info@deliverypro.com</li>
+                        <li>📍 123 Food Street, City</li>
+                    </ul>
+                </div>
+            </div>
+            
+            <div class="border-t border-gray-800 mt-8 pt-8 text-center text-gray-400">
+                <p>&copy; 2024 DeliveryPro. All rights reserved.</p>
+            </div>
+        </div>
+    </footer>
 </div>
 
-<div id="blazor-error-ui">
-    An unhandled error has occurred.
-    <a href="" class="reload">Reload</a>
-    <a class="dismiss">🗙</a>
-</div>
+<!-- Cart Drawer -->
+<CartDrawer IsOpen="isCartDrawerOpen" IsOpenChanged="@((bool value) => isCartDrawerOpen = value)" />
+
+@code {
+    private bool isMobileMenuOpen = false;
+    private bool isCartDrawerOpen = false;
+    private User? currentUser;
+
+    protected override async Task OnInitializedAsync()
+    {
+        currentUser = await AuthService.GetCurrentUserAsync();
+        AuthService.OnAuthStateChanged += OnAuthStateChanged;
+    }
+
+    private void OnAuthStateChanged(User? user)
+    {
+        currentUser = user;
+        InvokeAsync(StateHasChanged);
+    }
+
+    private void ToggleMobileMenu()
+    {
+        isMobileMenuOpen = !isMobileMenuOpen;
+    }
+
+    private void CloseMobileMenu()
+    {
+        isMobileMenuOpen = false;
+    }
+
+    private void ToggleCartDrawer()
+    {
+        isCartDrawerOpen = !isCartDrawerOpen;
+        // Close mobile menu if open
+        if (isCartDrawerOpen)
+        {
+            isMobileMenuOpen = false;
+        }
+    }
+
+    private async Task HandleLogout()
+    {
+        await AuthService.LogoutAsync();
+        CloseMobileMenu();
+    }
+
+    public void Dispose()
+    {
+        AuthService.OnAuthStateChanged -= OnAuthStateChanged;
+    }
+}

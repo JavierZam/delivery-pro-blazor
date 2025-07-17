@@ -1,6 +1,18 @@
-﻿<Router AppAssembly="typeof(Program).Assembly">
+<Router AppAssembly="@typeof(BlazorApp1.Components.App).Assembly">
     <Found Context="routeData">
-        <RouteView RouteData="routeData" DefaultLayout="typeof(Layout.MainLayout)" />
-        <FocusOnNavigate RouteData="routeData" Selector="h1" />
+        <RouteView RouteData="@routeData" DefaultLayout="@typeof(MainLayout)" />
+        <FocusOnNavigate RouteData="@routeData" Selector="h1" />
     </Found>
+    <NotFound>
+        <PageTitle>Not found</PageTitle>
+        <LayoutView Layout="@typeof(MainLayout)">
+            <div class="min-h-screen flex items-center justify-center bg-gray-50">
+                <div class="text-center">
+                    <h1 class="text-6xl font-bold text-gray-900 mb-4">404</h1>
+                    <p class="text-xl text-gray-600 mb-8">Page not found</p>
+                    <a href="/" class="btn btn-primary">Go Home</a>
+                </div>
+            </div>
+        </LayoutView>
+    </NotFound>
 </Router>

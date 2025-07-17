@@ -1,0 +1,228 @@
+@inject ICartService CartService
+@implements IDisposable
+
+<!-- Cart Drawer Overlay -->
+@if (IsOpen)
+{
+    <div class="fixed inset-0 z-50 overflow-hidden" @onclick="CloseDrawer">
+        <div class="absolute inset-0 bg-black bg-opacity-50 transition-opacity"></div>
+        
+        <!-- Cart Drawer -->
+        <div class="fixed right-0 top-0 h-full w-full max-w-md bg-white shadow-xl animate-slide-left" @onclick:stopPropagation="true">
+            <div class="flex flex-col h-full">
+                <!-- Header -->
+                <div class="flex items-center justify-between p-4 border-b border-gray-200">
+                    <h2 class="text-lg font-semibold text-gray-900">Shopping Cart</h2>
+                    <button @onclick="CloseDrawer" class="p-2 hover:bg-gray-100 rounded-lg transition-colors">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                        </svg>
+                    </button>
+                </div>
+
+                <!-- Cart Items -->
+                <div class="flex-1 overflow-y-auto p-4">
+                    @if (cart == null)
+                    {
+                        <div class="text-center py-8">
+                            <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600 mx-auto"></div>
+                            <p class="mt-2 text-gray-600">Loading cart...</p>
+                        </div>
+                    }
+                    else if (cart.IsEmpty)
+                    {
+                        <div class="text-center py-12">
+                            <div class="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                                <svg class="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4m0 0L7 13m0 0l-1.5 6M7 13l4.5-6m4.5 6v6a1 1 0 01-1 1H9a1 1 0 01-1-1v-6m4.5-6L17 7"></path>
+                                </svg>
+                            </div>
+                            <h3 class="text-lg font-medium text-gray-900 mb-2">Your cart is empty</h3>
+                            <p class="text-gray-600 mb-4">Add items from our menu to get started!</p>
+                            <a href="/menu" @onclick="CloseDrawer" class="btn btn-primary">Browse Menu</a>
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="space-y-4">
+                            @foreach (var item in cart.Items)
+                            {
+                                <div class="card p-4 animate-fade-in">
+                                    <div class="flex items-start space-x-3">
+                                        <!-- Item Image Placeholder -->
+                                        <div class="w-16 h-16 bg-gray-200 rounded-lg flex items-center justify-center flex-shrink-0">
+                                            <span class="text-2xl">@GetCategoryEmoji(item.Category)</span>
+                                        </div>
+                                        
+                                        <!-- Item Details -->
+                                        <div class="flex-1 min-w-0">
+                                            <h4 class="font-medium text-gray-900 truncate">@item.ProductName</h4>
+                                            <p class="text-sm text-gray-600">$@item.Price.ToString("F2") each</p>
+                                            
+                                            <!-- Quantity Controls -->
+                                            <div class="flex items-center space-x-2 mt-2">
+                                                <button @onclick="() => UpdateQuantity(item.ProductId, item.Quantity - 1)"
+                                                        class="w-8 h-8 rounded-full bg-gray-100 hover:bg-gray-200 flex items-center justify-center transition-colors">
+                                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 12H4"></path>
+                                                    </svg>
+                                                </button>
+                                                <span class="font-medium min-w-[2rem] text-center">@item.Quantity</span>
+                                                <button @onclick="() => UpdateQuantity(item.ProductId, item.Quantity + 1)"
+                                                        class="w-8 h-8 rounded-full bg-gray-100 hover:bg-gray-200 flex items-center justify-center transition-colors">
+                                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
+                                                    </svg>
+                                                </button>
+                                            </div>
+                                        </div>
+                                        
+                                        <!-- Item Total & Remove -->
+                                        <div class="text-right">
+                                            <p class="font-medium text-gray-900">$@item.Subtotal.ToString("F2")</p>
+                                            <button @onclick="() => RemoveItem(item.ProductId)"
+                                                    class="text-red-500 hover:text-red-700 text-sm mt-1 transition-colors">
+                                                Remove
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            }
+                        </div>
+                    }
+                </div>
+
+                <!-- Cart Summary & Checkout -->
+                @if (cart != null && !cart.IsEmpty)
+                {
+                    <div class="border-t border-gray-200 p-4 space-y-4">
+                        <!-- Order Summary -->
+                        <div class="space-y-2 text-sm">
+                            <div class="flex justify-between">
+                                <span class="text-gray-600">Subtotal (@cart.TotalItems items)</span>
+                                <span>$@cart.Subtotal.ToString("F2")</span>
+                            </div>
+                            <div class="flex justify-between">
+                                <span class="text-gray-600">Delivery Fee</span>
+                                <span class="@(cart.DeliveryFee == 0 ? "text-green-600" : "")">
+                                    @(cart.DeliveryFee == 0 ? "FREE" : $"${cart.DeliveryFee:F2}")
+                                </span>
+                            </div>
+                            <div class="flex justify-between">
+                                <span class="text-gray-600">Tax</span>
+                                <span>$@cart.Tax.ToString("F2")</span>
+                            </div>
+                            @if (cart.DeliveryFee == 0)
+                            {
+                                <p class="text-xs text-green-600">🎉 Free delivery on orders over $50!</p>
+                            }
+                            else
+                            {
+                                <p class="text-xs text-gray-500">Free delivery on orders over $50</p>
+                            }
+                        </div>
+                        
+                        <div class="border-t pt-2">
+                            <div class="flex justify-between items-center">
+                                <span class="font-semibold text-lg">Total</span>
+                                <span class="font-bold text-xl text-primary-600">$@cart.Total.ToString("F2")</span>
+                            </div>
+                            <p class="text-xs text-gray-500 mt-1">Estimated prep time: @cart.EstimatedPrepTime minutes</p>
+                        </div>
+                        
+                        <!-- Action Buttons -->
+                        <div class="space-y-2">
+                            <button class="btn btn-primary w-full" @onclick="GoToCheckout">
+                                Proceed to Checkout
+                            </button>
+                            <button class="btn btn-outline w-full" @onclick="ViewCart">
+                                View Full Cart
+                            </button>
+                        </div>
+                    </div>
+                }
+            </div>
+        </div>
+    </div>
+}
+
+
+@code {
+    [Parameter] public bool IsOpen { get; set; }
+    [Parameter] public EventCallback<bool> IsOpenChanged { get; set; }
+    
+    private Cart? cart;
+
+    protected override async Task OnInitializedAsync()
+    {
+        CartService.OnCartChanged += HandleCartChanged;
+        await LoadCart();
+    }
+
+    protected override async Task OnParametersSetAsync()
+    {
+        if (IsOpen)
+        {
+            await LoadCart();
+        }
+    }
+
+    private async Task LoadCart()
+    {
+        cart = await CartService.GetCartAsync();
+        StateHasChanged();
+    }
+
+    private async void HandleCartChanged()
+    {
+        await LoadCart();
+    }
+
+    private async Task UpdateQuantity(string productId, int quantity)
+    {
+        await CartService.UpdateQuantityAsync(productId, quantity);
+    }
+
+    private async Task RemoveItem(string productId)
+    {
+        await CartService.RemoveItemAsync(productId);
+    }
+
+    private async Task CloseDrawer()
+    {
+        await IsOpenChanged.InvokeAsync(false);
+    }
+
+    private async Task GoToCheckout()
+    {
+        await CloseDrawer();
+        // TODO: Navigate to checkout page
+        Console.WriteLine("Navigating to checkout...");
+    }
+
+    private async Task ViewCart()
+    {
+        await CloseDrawer();
+        // TODO: Navigate to cart page
+        Console.WriteLine("Navigating to cart page...");
+    }
+
+    private string GetCategoryEmoji(string category)
+    {
+        return category switch
+        {
+            "Pizza" => "🍕",
+            "Burgers" => "🍔",
+            "Sushi" => "🍣",
+            "Chinese" => "🥡",
+            "Indian" => "🍛",
+            "Desserts" => "🍰",
+            _ => "🍽️"
+        };
+    }
+
+    public void Dispose()
+    {
+        CartService.OnCartChanged -= HandleCartChanged;
+    }
+}

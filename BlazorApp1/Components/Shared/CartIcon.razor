@@ -1,0 +1,44 @@
+@inject ICartService CartService
+@implements IDisposable
+
+<div class="relative cursor-pointer" @onclick="OnCartClick">
+    <div class="flex items-center space-x-1 p-2 rounded-lg hover:bg-gray-100 transition-colors">
+        <svg class="w-6 h-6 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4m0 0L7 13m0 0l-1.5 6M7 13l4.5-6m4.5 6v6a1 1 0 01-1 1H9a1 1 0 01-1-1v-6m4.5-6L17 7"></path>
+        </svg>
+        @if (itemCount > 0)
+        {
+            <span class="absolute -top-1 -right-1 bg-primary-600 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center font-medium animate-bounce-in">
+                @(itemCount > 99 ? "99+" : itemCount.ToString())
+            </span>
+        }
+    </div>
+</div>
+
+@code {
+    [Parameter] public EventCallback OnClick { get; set; }
+    
+    private int itemCount = 0;
+
+    protected override async Task OnInitializedAsync()
+    {
+        CartService.OnCartChanged += HandleCartChanged;
+        itemCount = await CartService.GetCartItemCountAsync();
+    }
+
+    private async void HandleCartChanged()
+    {
+        itemCount = await CartService.GetCartItemCountAsync();
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private async Task OnCartClick()
+    {
+        await OnClick.InvokeAsync();
+    }
+
+    public void Dispose()
+    {
+        CartService.OnCartChanged -= HandleCartChanged;
+    }
+}

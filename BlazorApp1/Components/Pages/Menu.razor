@@ -1,0 +1,179 @@
+@page "/menu"
+@inject IProductService ProductService
+@inject ICartService CartService
+
+<PageTitle>Menu - DeliveryPro</PageTitle>
+
+<div class="min-h-screen bg-gray-50 py-8">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <!-- Header -->
+        <div class="text-center mb-12">
+            <h1 class="text-4xl font-bold text-gray-900 mb-4">Our Menu</h1>
+            <p class="text-xl text-gray-600">Delicious food delivered to your doorstep</p>
+        </div>
+
+        <!-- Categories Filter -->
+        <div class="flex flex-wrap justify-center gap-4 mb-8">
+            <button @onclick="() => FilterByCategory(null)" 
+                    class="@GetCategoryButtonClass(null)">
+                All Items
+            </button>
+            @foreach (var category in categories)
+            {
+                <button @onclick="() => FilterByCategory(category)" 
+                        class="@GetCategoryButtonClass(category)">
+                    @category
+                </button>
+            }
+        </div>
+
+        <!-- Products Grid -->
+        @if (filteredProducts == null)
+        {
+            <div class="text-center">
+                <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600 mx-auto"></div>
+                <p class="mt-4 text-gray-600">Loading menu...</p>
+            </div>
+        }
+        else
+        {
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                @foreach (var product in filteredProducts)
+                {
+                    <div class="card p-6 animate-fade-in hover:shadow-xl transition-all duration-300">
+                        <div class="aspect-square bg-gray-200 rounded-lg mb-4 flex items-center justify-center">
+                            <span class="text-4xl">@GetProductEmoji(product.Category)</span>
+                        </div>
+                        
+                        <h3 class="text-lg font-semibold text-gray-900 mb-2">@product.Name</h3>
+                        <p class="text-gray-600 text-sm mb-4 line-clamp-2">@product.Description</p>
+                        
+                        <div class="flex items-center justify-between mb-4">
+                            <span class="text-2xl font-bold text-primary-600">$@product.Price.ToString("F2")</span>
+                            <span class="text-sm text-gray-500">@product.EstimatedPrepTime min</span>
+                        </div>
+                        
+                        <button class="btn btn-primary w-full" @onclick="() => AddToCart(product)" disabled="@isAddingToCart">
+                            @if (isAddingToCart && addingProductId == product.Id)
+                            {
+                                <span class="flex items-center justify-center">
+                                    <svg class="animate-spin -ml-1 mr-2 h-4 w-4 text-white" fill="none" viewBox="0 0 24 24">
+                                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                    </svg>
+                                    Adding...
+                                </span>
+                            }
+                            else
+                            {
+                                <span>Add to Cart</span>
+                            }
+                        </button>
+                    </div>
+                }
+            </div>
+            
+            @if (!filteredProducts.Any())
+            {
+                <div class="text-center py-12">
+                    <h3 class="text-xl font-semibold text-gray-900 mb-2">No items found</h3>
+                    <p class="text-gray-600">Try selecting a different category</p>
+                </div>
+            }
+        }
+    </div>
+</div>
+
+@code {
+    private List<Product>? allProducts;
+    private List<Product>? filteredProducts;
+    private string? selectedCategory;
+    private readonly string[] categories = { "Pizza", "Burgers", "Sushi", "Chinese", "Indian", "Desserts" };
+    private bool isAddingToCart = false;
+    private string? addingProductId = null;
+
+    protected override async Task OnInitializedAsync()
+    {
+        allProducts = await ProductService.GetProductsAsync();
+        filteredProducts = allProducts;
+    }
+
+    private async Task FilterByCategory(string? category)
+    {
+        selectedCategory = category;
+        
+        if (category == null)
+        {
+            filteredProducts = allProducts;
+        }
+        else
+        {
+            filteredProducts = await ProductService.GetProductsByCategoryAsync(category);
+        }
+    }
+
+    private string GetCategoryButtonClass(string? category)
+    {
+        var baseClass = "px-6 py-2 rounded-full font-medium transition-all duration-200";
+        
+        if (selectedCategory == category)
+        {
+            return $"{baseClass} bg-primary-600 text-white shadow-md";
+        }
+        
+        return $"{baseClass} bg-white text-gray-700 border border-gray-300 hover:bg-primary-50 hover:border-primary-300";
+    }
+
+    private string GetProductEmoji(string category)
+    {
+        return category switch
+        {
+            "Pizza" => "🍕",
+            "Burgers" => "🍔",
+            "Sushi" => "🍣",
+            "Chinese" => "🥡",
+            "Indian" => "🍛",
+            "Desserts" => "🍰",
+            _ => "🍽️"
+        };
+    }
+
+    private async Task AddToCart(Product product)
+    {
+        if (isAddingToCart) return;
+        
+        isAddingToCart = true;
+        addingProductId = product.Id;
+        StateHasChanged();
+
+        try
+        {
+            await CartService.AddItemAsync(product);
+            
+            // Brief delay for visual feedback
+            await Task.Delay(500);
+            
+            // Show success toast (optional)
+            await ShowAddToCartSuccess(product.Name);
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error adding to cart: {ex.Message}");
+            // TODO: Show error toast
+        }
+        finally
+        {
+            isAddingToCart = false;
+            addingProductId = null;
+            StateHasChanged();
+        }
+    }
+    
+    private Task ShowAddToCartSuccess(string productName)
+    {
+        // This would ideally be a toast notification service
+        // For now, just log to console
+        Console.WriteLine($"✅ {productName} added to cart!");
+        return Task.CompletedTask;
+    }
+}

@@ -1,0 +1,200 @@
+@page "/orders"
+@inject IOrderService OrderService
+
+<PageTitle>My Orders - DeliveryPro</PageTitle>
+
+<div class="min-h-screen bg-gray-50 py-8">
+    <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+        <!-- Header -->
+        <div class="text-center mb-12">
+            <h1 class="text-4xl font-bold text-gray-900 mb-4">My Orders</h1>
+            <p class="text-xl text-gray-600">Track your order history and current orders</p>
+        </div>
+
+        @if (orders == null)
+        {
+            <div class="text-center">
+                <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600 mx-auto"></div>
+                <p class="mt-4 text-gray-600">Loading orders...</p>
+            </div>
+        }
+        else if (!orders.Any())
+        {
+            <div class="text-center py-12">
+                <div class="w-24 h-24 bg-gray-200 rounded-full flex items-center justify-center mx-auto mb-6">
+                    <span class="text-4xl">📦</span>
+                </div>
+                <h3 class="text-xl font-semibold text-gray-900 mb-2">No orders yet</h3>
+                <p class="text-gray-600 mb-6">When you place orders, they will appear here</p>
+                <a href="/menu" class="btn btn-primary">Browse Menu</a>
+            </div>
+        }
+        else
+        {
+            <div class="space-y-6">
+                @foreach (var order in orders.OrderByDescending(o => o.CreatedAt))
+                {
+                    <div class="card p-6 animate-fade-in">
+                        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-4">
+                            <div>
+                                <h3 class="text-lg font-semibold text-gray-900">Order #@order.Id[..8]</h3>
+                                <p class="text-gray-600">@order.CreatedAt.ToString("MMM dd, yyyy 'at' h:mm tt")</p>
+                            </div>
+                            <div class="mt-2 sm:mt-0">
+                                <span class="@GetStatusBadgeClass(order.Status)">
+                                    @GetStatusDisplay(order.Status)
+                                </span>
+                            </div>
+                        </div>
+
+                        <div class="border-t border-gray-200 pt-4">
+                            <div class="flex justify-between items-start mb-4">
+                                <div class="flex-1">
+                                    <h4 class="font-medium text-gray-900 mb-2">Delivery Address</h4>
+                                    <p class="text-gray-600">@order.DeliveryAddress</p>
+                                    
+                                    <h4 class="font-medium text-gray-900 mt-4 mb-2">Items (@order.Items.Count)</h4>
+                                    <ul class="space-y-1">
+                                        @foreach (var item in order.Items)
+                                        {
+                                            <li class="flex justify-between text-sm">
+                                                <span>@item.Quantity× @item.ProductName</span>
+                                                <span>$@item.Subtotal.ToString("F2")</span>
+                                            </li>
+                                        }
+                                    </ul>
+                                </div>
+                                
+                                <div class="ml-6 text-right">
+                                    <p class="text-2xl font-bold text-gray-900">$@order.TotalAmount.ToString("F2")</p>
+                                    @if (order.Status == OrderStatus.OutForDelivery)
+                                    {
+                                        <button class="btn btn-outline mt-2 text-sm" @onclick="() => TrackOrder(order.Id)">
+                                            📍 Track Order
+                                        </button>
+                                    }
+                                </div>
+                            </div>
+
+                            @if (!string.IsNullOrEmpty(order.Notes))
+                            {
+                                <div class="bg-gray-50 p-3 rounded-lg">
+                                    <p class="text-sm text-gray-600"><strong>Notes:</strong> @order.Notes</p>
+                                </div>
+                            }
+                        </div>
+                    </div>
+                }
+            </div>
+        }
+    </div>
+</div>
+
+@code {
+    private List<Order>? orders;
+
+    protected override async Task OnInitializedAsync()
+    {
+        // For demo purposes, create some sample orders if none exist
+        orders = await OrderService.GetOrdersAsync();
+        
+        if (!orders.Any())
+        {
+            await CreateSampleOrders();
+            orders = await OrderService.GetOrdersAsync();
+        }
+    }
+
+    private async Task CreateSampleOrders()
+    {
+        var sampleOrders = new List<Order>
+        {
+            new()
+            {
+                CustomerName = "John Doe",
+                CustomerPhone = "+1234567890",
+                DeliveryAddress = "123 Main St, Apartment 4B, New York, NY 10001",
+                Items = new List<OrderItem>
+                {
+                    new() { ProductName = "Margherita Pizza", Price = 14.99m, Quantity = 1 },
+                    new() { ProductName = "Garlic Bread", Price = 3.99m, Quantity = 2 }
+                },
+                TotalAmount = 22.97m,
+                Status = OrderStatus.Delivered,
+                CreatedAt = DateTime.Now.AddDays(-2),
+                Notes = "Please ring the doorbell twice"
+            },
+            new()
+            {
+                CustomerName = "Jane Smith",
+                CustomerPhone = "+1234567891",
+                DeliveryAddress = "456 Oak Avenue, Brooklyn, NY 11201",
+                Items = new List<OrderItem>
+                {
+                    new() { ProductName = "Chicken Burger", Price = 13.99m, Quantity = 1 },
+                    new() { ProductName = "French Fries", Price = 4.99m, Quantity = 1 }
+                },
+                TotalAmount = 18.98m,
+                Status = OrderStatus.OutForDelivery,
+                CreatedAt = DateTime.Now.AddMinutes(-45)
+            },
+            new()
+            {
+                CustomerName = "Mike Johnson",
+                CustomerPhone = "+1234567892",
+                DeliveryAddress = "789 Pine Street, Manhattan, NY 10002",
+                Items = new List<OrderItem>
+                {
+                    new() { ProductName = "California Roll", Price = 8.99m, Quantity = 2 },
+                    new() { ProductName = "Miso Soup", Price = 3.99m, Quantity = 1 }
+                },
+                TotalAmount = 21.97m,
+                Status = OrderStatus.Preparing,
+                CreatedAt = DateTime.Now.AddMinutes(-20)
+            }
+        };
+
+        foreach (var order in sampleOrders)
+        {
+            await OrderService.CreateOrderAsync(order);
+        }
+    }
+
+    private string GetStatusBadgeClass(OrderStatus status)
+    {
+        var baseClass = "px-3 py-1 rounded-full text-sm font-medium";
+        
+        return status switch
+        {
+            OrderStatus.Pending => $"{baseClass} bg-yellow-100 text-yellow-800",
+            OrderStatus.Confirmed => $"{baseClass} bg-blue-100 text-blue-800",
+            OrderStatus.Preparing => $"{baseClass} bg-orange-100 text-orange-800",
+            OrderStatus.Ready => $"{baseClass} bg-purple-100 text-purple-800",
+            OrderStatus.OutForDelivery => $"{baseClass} bg-indigo-100 text-indigo-800",
+            OrderStatus.Delivered => $"{baseClass} bg-green-100 text-green-800",
+            OrderStatus.Cancelled => $"{baseClass} bg-red-100 text-red-800",
+            _ => $"{baseClass} bg-gray-100 text-gray-800"
+        };
+    }
+
+    private string GetStatusDisplay(OrderStatus status)
+    {
+        return status switch
+        {
+            OrderStatus.Pending => "⏳ Pending",
+            OrderStatus.Confirmed => "✅ Confirmed",
+            OrderStatus.Preparing => "👨‍🍳 Preparing",
+            OrderStatus.Ready => "📦 Ready",
+            OrderStatus.OutForDelivery => "🚚 Out for Delivery",
+            OrderStatus.Delivered => "✅ Delivered",
+            OrderStatus.Cancelled => "❌ Cancelled",
+            _ => status.ToString()
+        };
+    }
+
+    private void TrackOrder(string orderId)
+    {
+        // TODO: Navigate to tracking page
+        Console.WriteLine($"Tracking order {orderId}");
+    }
+}
