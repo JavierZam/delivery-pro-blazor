@@ -8,7 +8,7 @@ public class User
     public string LastName { get; set; } = string.Empty;
     public string Phone { get; set; } = string.Empty;
     public string PasswordHash { get; set; } = string.Empty;
-    public List<Address> Addresses { get; set; } = new();
+    public List<Address> Addresses { get; set; } = [];
     public string? DefaultAddressId { get; set; }
     public DateTime CreatedAt { get; set; } = DateTime.Now;
     public DateTime LastLoginAt { get; set; }
@@ -28,7 +28,13 @@ public class Address
     public string City { get; set; } = string.Empty;
     public string State { get; set; } = string.Empty;
     public string PostalCode { get; set; } = string.Empty;
+    public string Country { get; set; } = "US";
     public string? Instructions { get; set; } // Delivery instructions
     public bool IsDefault { get; set; } = false;
     public DateTime CreatedAt { get; set; } = DateTime.Now;
+
+    public override string ToString()
+    {
+        return $"{Street}, {City}, {State} {PostalCode}";
+    }
 }

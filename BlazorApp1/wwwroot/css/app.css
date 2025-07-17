@@ -1,20 +1,4 @@
-/* Modern CSS Reset and Base Styles */
-* {
-    margin: 0;
-    padding: 0;
-    box-sizing: border-box;
-}
-
-html {
-    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
-    line-height: 1.6;
-    color: #1e293b;
-}
-
-body {
-    background-color: #f8fafc;
-    min-height: 100vh;
-}
+/* Custom Components and Styles for DeliveryPro */
 
 /* Smooth scrolling */
 html {
@@ -47,43 +31,6 @@ h1:focus {
 
 ::-webkit-scrollbar-thumb:hover {
     background: #94a3b8;
-}
-
-/* Animation utilities */
-@keyframes fadeIn {
-    from { opacity: 0; }
-    to { opacity: 1; }
-}
-
-@keyframes slideUp {
-    from { transform: translateY(20px); opacity: 0; }
-    to { transform: translateY(0); opacity: 1; }
-}
-
-@keyframes slideDown {
-    from { transform: translateY(-20px); opacity: 0; }
-    to { transform: translateY(0); opacity: 1; }
-}
-
-@keyframes scaleIn {
-    from { transform: scale(0.95); opacity: 0; }
-    to { transform: scale(1); opacity: 1; }
-}
-
-.animate-fade-in {
-    animation: fadeIn 0.3s ease-out;
-}
-
-.animate-slide-up {
-    animation: slideUp 0.3s ease-out;
-}
-
-.animate-slide-down {
-    animation: slideDown 0.3s ease-out;
-}
-
-.animate-scale-in {
-    animation: scaleIn 0.2s ease-out;
 }
 
 /* Card component */
@@ -145,11 +92,6 @@ h1:focus {
 .btn-outline:hover {
     background-color: #f9fafb;
     border-color: #9ca3af;
-}
-
-/* Content area */
-.content {
-    padding-top: 1.1rem;
 }
 
 /* Form validation */
@@ -255,7 +197,6 @@ h1:focus {
 
 .text-gradient {
     background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
-    /* Fallback for browsers that don't support background-clip: text */
     color: #3b82f6;
 }
 
@@ -275,25 +216,21 @@ code {
 
 /* Mobile optimizations */
 @media (max-width: 768px) {
-    /* Improve touch targets */
     .btn {
         min-height: 44px;
-        font-size: 16px; /* Prevent zoom on iOS */
+        font-size: 16px;
     }
     
-    /* Faster animations on mobile */
     * {
         animation-duration: 0.2s !important;
         transition-duration: 0.2s !important;
     }
     
-    /* Better text legibility */
     body {
         -webkit-text-size-adjust: 100%;
         text-size-adjust: 100%;
     }
     
-    /* Remove hover effects on touch devices */
     .card:hover {
         transform: none;
         box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
@@ -302,18 +239,15 @@ code {
 
 /* Touch device specific styles */
 @media (pointer: coarse) {
-    /* Larger touch targets */
     button, .btn, a {
         min-height: 44px;
         min-width: 44px;
     }
     
-    /* Remove hover states on touch devices */
     .btn:hover {
         transform: none;
     }
     
-    /* Add active states for better feedback */
     .btn:active, .card:active, a:active {
         transform: scale(0.98);
         transition: transform 0.1s ease;
@@ -322,10 +256,9 @@ code {
 
 /* PWA specific styles */
 .pwa-install-btn {
-    display: none; /* Hidden by default, shown by JS when installable */
+    display: none;
 }
 
-/* iOS PWA status bar */
 @media (display-mode: standalone) {
     body {
         padding-top: env(safe-area-inset-top);
@@ -333,9 +266,40 @@ code {
     }
 }
 
-/* Cart drawer animations */
+/* Animation utilities */
+.animate-fade-in {
+    animation: fadeIn 0.3s ease-out;
+}
+
+.animate-slide-up {
+    animation: slideUp 0.3s ease-out;
+}
+
+.animate-slide-down {
+    animation: slideDown 0.3s ease-out;
+}
+
+.animate-scale-in {
+    animation: scaleIn 0.2s ease-out;
+}
+
 .animate-slide-left {
     animation: slideLeft 0.3s ease-out;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+@keyframes slideUp {
+    from { transform: translateY(20px); opacity: 0; }
+    to { transform: translateY(0); opacity: 1; }
+}
+
+@keyframes slideDown {
+    from { transform: translateY(-20px); opacity: 0; }
+    to { transform: translateY(0); opacity: 1; }
 }
 
 @keyframes slideLeft {
@@ -343,10 +307,7 @@ code {
     to { transform: translateX(0); }
 }
 
-/* High DPI displays */
-@media (-webkit-min-device-pixel-ratio: 2), (min-resolution: 192dpi) {
-    /* Crisp icons and images - removed invalid properties */
-    .card, .btn {
-        /* image-rendering optimizations removed for compatibility */
-    }
+@keyframes scaleIn {
+    from { transform: scale(0.95); opacity: 0; }
+    to { transform: scale(1); opacity: 1; }
 }

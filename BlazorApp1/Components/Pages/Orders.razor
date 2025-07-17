@@ -1,5 +1,9 @@
 @page "/orders"
 @inject IOrderService OrderService
+@inject NavigationManager Navigation
+@using BlazorApp1.Domain.Entities
+@using BlazorApp1.Domain.Enums
+@using System.Linq
 
 <PageTitle>My Orders - DeliveryPro</PageTitle>
 
@@ -18,7 +22,7 @@
                 <p class="mt-4 text-gray-600">Loading orders...</p>
             </div>
         }
-        else if (!orders.Any())
+        else if (orders?.Count == 0)
         {
             <div class="text-center py-12">
                 <div class="w-24 h-24 bg-gray-200 rounded-full flex items-center justify-center mx-auto mb-6">
@@ -32,12 +36,12 @@
         else
         {
             <div class="space-y-6">
-                @foreach (var order in orders.OrderByDescending(o => o.CreatedAt))
+                @foreach (var order in orders?.OrderByDescending(o => o.CreatedAt) ?? Enumerable.Empty<Order>())
                 {
                     <div class="card p-6 animate-fade-in">
                         <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-4">
                             <div>
-                                <h3 class="text-lg font-semibold text-gray-900">Order #@order.Id[..8]</h3>
+                                <h3 class="text-lg font-semibold text-gray-900">Order #@(order.Id?.Length > 8 ? order.Id[..8] : order.Id ?? "Unknown")</h3>
                                 <p class="text-gray-600">@order.CreatedAt.ToString("MMM dd, yyyy 'at' h:mm tt")</p>
                             </div>
                             <div class="mt-2 sm:mt-0">
@@ -52,16 +56,16 @@
                                 <div class="flex-1">
                                     <h4 class="font-medium text-gray-900 mb-2">Delivery Address</h4>
                                     <p class="text-gray-600">
-                                        @order.DeliveryAddress.Street<br />
-                                        @order.DeliveryAddress.City, @order.DeliveryAddress.State @order.DeliveryAddress.PostalCode
+                                        @(order.DeliveryAddress?.Street ?? "N/A")<br />
+                                        @(order.DeliveryAddress?.City ?? "N/A"), @(order.DeliveryAddress?.State ?? "N/A") @(order.DeliveryAddress?.PostalCode ?? "N/A")
                                     </p>
                                     
-                                    <h4 class="font-medium text-gray-900 mt-4 mb-2">Items (@order.Items.Count)</h4>
+                                    <h4 class="font-medium text-gray-900 mt-4 mb-2">Items (@(order.Items?.Count ?? 0))</h4>
                                     <ul class="space-y-1">
-                                        @foreach (var item in order.Items)
+                                        @foreach (var item in order.Items ?? [])
                                         {
                                             <li class="flex justify-between text-sm">
-                                                <span>@item.Quantity× @item.ProductName</span>
+                                                <span>@item.Quantity× @(item.ProductName ?? "Unknown Product")</span>
                                                 <span>$@item.Subtotal.ToString("F2")</span>
                                             </li>
                                         }
@@ -72,7 +76,7 @@
                                     <p class="text-2xl font-bold text-gray-900">$@order.TotalAmount.ToString("F2")</p>
                                     @if (order.Status == OrderStatus.OutForDelivery)
                                     {
-                                        <button class="btn btn-outline mt-2 text-sm" @onclick="@(() => TrackOrder(order.Id))">
+                                        <button class="btn btn-outline mt-2 text-sm" @onclick="@(() => TrackOrder(order.Id ?? ""))">
                                             📍 Track Order
                                         </button>
                                     }
@@ -98,23 +102,42 @@
 
     protected override async Task OnInitializedAsync()
     {
-        // For demo purposes, create some sample orders if none exist
-        orders = await OrderService.GetOrdersAsync();
-        
-        if (!orders.Any())
+        try
         {
-            await CreateSampleOrders();
-            orders = await OrderService.GetOrdersAsync();
+            // Initialize with empty list first
+            orders = [];
+            
+            // Try to load from service
+            var loadedOrders = await OrderService.GetOrdersAsync();
+            
+            if (loadedOrders?.Count == 0)
+            {
+                Console.WriteLine("No orders found, creating sample orders...");
+                await CreateSampleOrders();
+                loadedOrders = await OrderService.GetOrdersAsync();
+            }
+            
+            orders = loadedOrders ?? [];
+            Console.WriteLine($"Loaded {orders.Count} orders successfully");
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error loading orders: {ex.Message}");
+            Console.WriteLine($"Stack trace: {ex.StackTrace}");
+            orders = [];
         }
     }
 
     private async Task CreateSampleOrders()
     {
-        var sampleOrders = new List<Order>
+        try
+        {
+            var sampleOrders = new List<Order>
         {
             new()
             {
                 CustomerName = "John Doe",
+                CustomerEmail = "john@example.com",
                 CustomerPhone = "+1234567890",
                 DeliveryAddress = new Address 
                 { 
@@ -123,12 +146,14 @@
                     State = "NY", 
                     PostalCode = "10001" 
                 },
-                Items = new List<OrderItem>
-                {
-                    new() { ProductName = "Margherita Pizza", Price = 14.99m, Quantity = 1 },
-                    new() { ProductName = "Garlic Bread", Price = 3.99m, Quantity = 2 }
-                },
+                Items = [
+                    new() { ProductId = "1", ProductName = "Margherita Pizza", Price = 14.99m, Quantity = 1 },
+                    new() { ProductId = "2", ProductName = "Garlic Bread", Price = 3.99m, Quantity = 2 }
+                ],
+                Subtotal = 22.97m,
                 TotalAmount = 22.97m,
+                Total = 22.97m,
+                PaymentMethod = "Credit Card",
                 Status = OrderStatus.Delivered,
                 CreatedAt = DateTime.Now.AddDays(-2),
                 Notes = "Please ring the doorbell twice"
@@ -136,6 +161,7 @@
             new()
             {
                 CustomerName = "Jane Smith",
+                CustomerEmail = "jane@example.com",
                 CustomerPhone = "+1234567891",
                 DeliveryAddress = new Address 
                 { 
@@ -144,18 +170,21 @@
                     State = "NY", 
                     PostalCode = "11201" 
                 },
-                Items = new List<OrderItem>
-                {
-                    new() { ProductName = "Chicken Burger", Price = 13.99m, Quantity = 1 },
-                    new() { ProductName = "French Fries", Price = 4.99m, Quantity = 1 }
-                },
+                Items = [
+                    new() { ProductId = "3", ProductName = "Chicken Burger", Price = 13.99m, Quantity = 1 },
+                    new() { ProductId = "4", ProductName = "French Fries", Price = 4.99m, Quantity = 1 }
+                ],
+                Subtotal = 18.98m,
                 TotalAmount = 18.98m,
+                Total = 18.98m,
+                PaymentMethod = "Credit Card",
                 Status = OrderStatus.OutForDelivery,
                 CreatedAt = DateTime.Now.AddMinutes(-45)
             },
             new()
             {
                 CustomerName = "Mike Johnson",
+                CustomerEmail = "mike@example.com",
                 CustomerPhone = "+1234567892",
                 DeliveryAddress = new Address 
                 { 
@@ -164,20 +193,27 @@
                     State = "NY", 
                     PostalCode = "10002" 
                 },
-                Items = new List<OrderItem>
-                {
-                    new() { ProductName = "California Roll", Price = 8.99m, Quantity = 2 },
-                    new() { ProductName = "Miso Soup", Price = 3.99m, Quantity = 1 }
-                },
+                Items = [
+                    new() { ProductId = "5", ProductName = "California Roll", Price = 8.99m, Quantity = 2 },
+                    new() { ProductId = "6", ProductName = "Miso Soup", Price = 3.99m, Quantity = 1 }
+                ],
+                Subtotal = 21.97m,
                 TotalAmount = 21.97m,
+                Total = 21.97m,
+                PaymentMethod = "Credit Card",
                 Status = OrderStatus.Preparing,
                 CreatedAt = DateTime.Now.AddMinutes(-20)
             }
         };
 
-        foreach (var order in sampleOrders)
+            foreach (var order in sampleOrders)
+            {
+                await OrderService.CreateOrderAsync(order);
+            }
+        }
+        catch (Exception ex)
         {
-            await OrderService.CreateOrderAsync(order);
+            Console.WriteLine($"Error creating sample orders: {ex.Message}");
         }
     }
 
@@ -213,9 +249,11 @@
         };
     }
 
-    private void TrackOrder(string orderId)
+    private void TrackOrder(string? orderId)
     {
-        // TODO: Navigate to tracking page
-        Console.WriteLine($"Tracking order {orderId}");
+        if (!string.IsNullOrEmpty(orderId))
+        {
+            Navigation.NavigateTo($"/track/{orderId}");
+        }
     }
 }

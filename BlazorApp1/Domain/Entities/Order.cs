@@ -10,7 +10,7 @@ public class Order
     public string CustomerEmail { get; set; } = string.Empty;
     public string CustomerPhone { get; set; } = string.Empty;
     public Address DeliveryAddress { get; set; } = new();
-    public List<OrderItem> Items { get; set; } = new();
+    public List<OrderItem> Items { get; set; } = [];
     public decimal Subtotal { get; set; }
     public decimal DeliveryFee { get; set; }
     public decimal Tax { get; set; }

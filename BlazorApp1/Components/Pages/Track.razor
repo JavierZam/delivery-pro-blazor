@@ -1,6 +1,8 @@
 @page "/track"
 @page "/track/{OrderId}"
 @inject IOrderService OrderService
+@using BlazorApp1.Domain.Entities
+@using BlazorApp1.Domain.Enums
 
 <PageTitle>Track Order - DeliveryPro</PageTitle>
 
@@ -63,7 +65,10 @@
 
                     <div class="border-t pt-4">
                         <p class="text-gray-900 font-medium">Delivering to:</p>
-                        <p class="text-gray-600">@currentOrder.DeliveryAddress</p>
+                        <p class="text-gray-600">
+                            @currentOrder.DeliveryAddress.Street<br />
+                            @currentOrder.DeliveryAddress.City, @currentOrder.DeliveryAddress.State @currentOrder.DeliveryAddress.PostalCode
+                        </p>
                     </div>
                 </div>
 
@@ -173,15 +178,14 @@
 
     private List<TrackingStep> GetTrackingSteps()
     {
-        return new List<TrackingStep>
-        {
+        return [
             new() { Status = OrderStatus.Pending, Icon = "⏳", Title = "Order Received", Description = "We've received your order" },
             new() { Status = OrderStatus.Confirmed, Icon = "✅", Title = "Order Confirmed", Description = "Restaurant confirmed your order" },
             new() { Status = OrderStatus.Preparing, Icon = "👨‍🍳", Title = "Preparing", Description = "Your food is being prepared" },
             new() { Status = OrderStatus.Ready, Icon = "📦", Title = "Ready for Pickup", Description = "Food is ready, waiting for delivery" },
             new() { Status = OrderStatus.OutForDelivery, Icon = "🚚", Title = "Out for Delivery", Description = "Driver is on the way to you" },
             new() { Status = OrderStatus.Delivered, Icon = "🏠", Title = "Delivered", Description = "Order has been delivered" }
-        };
+        ];
     }
 
     private string GetStepIconClass(OrderStatus stepStatus, OrderStatus currentStatus)

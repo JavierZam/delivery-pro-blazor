@@ -1,4 +1,5 @@
 using BlazorApp1.Domain.Entities;
+using BlazorApp1.Domain.Enums;
 using BlazorApp1.Infrastructure.Storage;
 
 namespace BlazorApp1.Application.Services;
@@ -15,7 +16,7 @@ public class OrderService : IOrderService
 
     public async Task<List<Order>> GetOrdersAsync()
     {
-        return await _localStorage.GetItemAsync<List<Order>>(ORDERS_KEY) ?? new List<Order>();
+        return await _localStorage.GetItemAsync<List<Order>>(ORDERS_KEY) ?? [];
     }
 
     public async Task<Order?> GetOrderByIdAsync(string id)

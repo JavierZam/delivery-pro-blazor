@@ -1,4 +1,5 @@
 using BlazorApp1.Domain.Entities;
+using BlazorApp1.Domain.Enums;
 
 namespace BlazorApp1.Application.Services;
 

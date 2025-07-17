@@ -7,6 +7,29 @@
     <title>DeliveryPro - Order Delivery System</title>
     <base href="/" />
     <link href="css/app.css" rel="stylesheet" />
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: {
+                            50: '#eff6ff',
+                            100: '#dbeafe',
+                            200: '#bfdbfe',
+                            300: '#93c5fd',
+                            400: '#60a5fa',
+                            500: '#3b82f6',
+                            600: '#2563eb',
+                            700: '#1d4ed8',
+                            800: '#1e40af',
+                            900: '#1e3a8a',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
     <link rel="icon" type="image/png" href="favicon.png" />
     
     <!-- PWA Manifest -->
@@ -22,9 +45,6 @@
     
     <!-- Apple Touch Icons -->
     <link rel="apple-touch-icon" sizes="32x32" href="icon-32.png" />
-    
-    <!-- Tailwind CSS -->
-    <link href="css/tailwind.css" rel="stylesheet" />
 </head>
 
 <body class="bg-gray-50">
