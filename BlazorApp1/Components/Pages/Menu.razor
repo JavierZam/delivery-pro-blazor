@@ -14,13 +14,13 @@
 
         <!-- Categories Filter -->
         <div class="flex flex-wrap justify-center gap-4 mb-8">
-            <button @onclick="() => FilterByCategory(null)" 
+            <button @onclick="@(() => FilterByCategory(null))" 
                     class="@GetCategoryButtonClass(null)">
                 All Items
             </button>
             @foreach (var category in categories)
             {
-                <button @onclick="() => FilterByCategory(category)" 
+                <button @onclick="@(() => FilterByCategory(category))" 
                         class="@GetCategoryButtonClass(category)">
                     @category
                 </button>
@@ -53,7 +53,7 @@
                             <span class="text-sm text-gray-500">@product.EstimatedPrepTime min</span>
                         </div>
                         
-                        <button class="btn btn-primary w-full" @onclick="() => AddToCart(product)" disabled="@isAddingToCart">
+                        <button class="btn btn-primary w-full" @onclick="@(() => AddToCart(product))" disabled="@isAddingToCart">
                             @if (isAddingToCart && addingProductId == product.Id)
                             {
                                 <span class="flex items-center justify-center">

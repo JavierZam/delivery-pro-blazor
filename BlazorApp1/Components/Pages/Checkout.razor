@@ -1,0 +1,643 @@
+@page "/checkout"
+@inject ICartService CartService
+@inject IAuthService AuthService
+@inject IOrderService OrderService
+@inject NavigationManager Navigation
+@inject IJSRuntime JSRuntime
+
+<PageTitle>Checkout - DeliveryPro</PageTitle>
+
+<div class="min-h-screen bg-gray-50 py-8">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        @if (cart?.Items?.Any() != true)
+        {
+            <!-- Empty Cart State -->
+            <div class="text-center py-16">
+                <div class="text-gray-400 text-6xl mb-4">🛒</div>
+                <h2 class="text-2xl font-bold text-gray-900 mb-4">Your cart is empty</h2>
+                <p class="text-gray-600 mb-8">Add some delicious items to get started!</p>
+                <a href="/menu" class="btn btn-primary">
+                    Browse Menu
+                </a>
+            </div>
+        }
+        else
+        {
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                <!-- Main Content -->
+                <div class="lg:col-span-2 space-y-6">
+                    <!-- Authentication Section -->
+                    @if (currentUser == null)
+                    {
+                        <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+                            <h2 class="text-lg font-semibold text-gray-900 mb-4">Account</h2>
+                            <div class="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4">
+                                <div class="flex items-start">
+                                    <svg class="w-5 h-5 text-blue-400 mt-0.5 mr-3" fill="currentColor" viewBox="0 0 20 20">
+                                        <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"></path>
+                                    </svg>
+                                    <div>
+                                        <h3 class="text-sm font-medium text-blue-800">Sign in for faster checkout</h3>
+                                        <p class="text-sm text-blue-700 mt-1">Access saved addresses and order history</p>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="flex space-x-3">
+                                <a href="/signin" class="btn btn-primary flex-1 text-center">Sign In</a>
+                                <a href="/signup" class="btn btn-outline flex-1 text-center">Create Account</a>
+                                <button @onclick="ContinueAsGuest" class="btn btn-outline flex-1">Continue as Guest</button>
+                            </div>
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+                            <div class="flex items-center space-x-3">
+                                <div class="w-12 h-12 bg-primary-600 rounded-full flex items-center justify-center">
+                                    <span class="text-white font-bold">@GetUserInitials()</span>
+                                </div>
+                                <div>
+                                    <h2 class="text-lg font-semibold text-gray-900">Welcome back, @currentUser.FirstName!</h2>
+                                    <p class="text-gray-600">@currentUser.Email</p>
+                                </div>
+                            </div>
+                        </div>
+                    }
+
+                    <!-- Delivery Information -->
+                    @if (showDeliveryForm)
+                    {
+                        <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+                            <h2 class="text-lg font-semibold text-gray-900 mb-6">Delivery Information</h2>
+                            
+                            @if (currentUser?.Addresses?.Any() == true)
+                            {
+                                <!-- Saved Addresses -->
+                                <div class="mb-6">
+                                    <h3 class="text-sm font-medium text-gray-700 mb-3">Choose a saved address</h3>
+                                    <div class="space-y-3">
+                                        @foreach (var address in currentUser.Addresses)
+                                        {
+                                            <div class="border border-gray-200 rounded-lg p-4 cursor-pointer transition-colors @(selectedAddressId == address.Id ? "border-primary-500 bg-primary-50" : "hover:border-gray-300")"
+                                                 @onclick="@(() => SelectAddress(address.Id))">
+                                                <div class="flex items-start space-x-3">
+                                                    <input type="radio" name="address" checked="@(selectedAddressId == address.Id)" 
+                                                           class="mt-1 h-4 w-4 text-primary-600 border-gray-300" />
+                                                    <div class="flex-1">
+                                                        <div class="flex items-center space-x-2">
+                                                            <span class="font-medium text-gray-900">@address.Label</span>
+                                                            @if (address.IsDefault)
+                                                            {
+                                                                <span class="bg-primary-100 text-primary-800 px-2 py-1 rounded-full text-xs">Default</span>
+                                                            }
+                                                        </div>
+                                                        <p class="text-gray-600 text-sm mt-1">
+                                                            @address.Street<br />
+                                                            @address.City, @address.State @address.PostalCode
+                                                        </p>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        }
+                                    </div>
+                                    
+                                    <button @onclick="ShowNewAddressForm" class="mt-4 text-primary-600 hover:text-primary-500 text-sm font-medium">
+                                        + Add new address
+                                    </button>
+                                </div>
+                            }
+
+                            @if (showNewAddressForm || currentUser?.Addresses?.Any() != true)
+                            {
+                                <!-- New Address Form -->
+                                <div class="@(currentUser?.Addresses?.Any() == true ? "border-t border-gray-200 pt-6" : "")">
+                                    <h3 class="text-sm font-medium text-gray-700 mb-4">
+                                        @(currentUser?.Addresses?.Any() == true ? "New delivery address" : "Delivery address")
+                                    </h3>
+                                    
+                                    <EditForm Model="@deliveryForm" OnValidSubmit="SaveDeliveryInfo" novalidate>
+                                        <DataAnnotationsValidator />
+                                        
+                                        @if (currentUser == null)
+                                        {
+                                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                                                <div>
+                                                    <label class="block text-sm font-medium text-gray-700 mb-2">First Name</label>
+                                                    <InputText @bind-Value="deliveryForm.FirstName" 
+                                                               class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500" />
+                                                    <ValidationMessage For="@(() => deliveryForm.FirstName)" class="text-red-500 text-sm mt-1" />
+                                                </div>
+                                                <div>
+                                                    <label class="block text-sm font-medium text-gray-700 mb-2">Last Name</label>
+                                                    <InputText @bind-Value="deliveryForm.LastName" 
+                                                               class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500" />
+                                                    <ValidationMessage For="@(() => deliveryForm.LastName)" class="text-red-500 text-sm mt-1" />
+                                                </div>
+                                            </div>
+
+                                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                                                <div>
+                                                    <label class="block text-sm font-medium text-gray-700 mb-2">Email</label>
+                                                    <InputText @bind-Value="deliveryForm.Email" type="email"
+                                                               class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500" />
+                                                    <ValidationMessage For="@(() => deliveryForm.Email)" class="text-red-500 text-sm mt-1" />
+                                                </div>
+                                                <div>
+                                                    <label class="block text-sm font-medium text-gray-700 mb-2">Phone</label>
+                                                    <InputText @bind-Value="deliveryForm.Phone" type="tel"
+                                                               class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500" />
+                                                    <ValidationMessage For="@(() => deliveryForm.Phone)" class="text-red-500 text-sm mt-1" />
+                                                </div>
+                                            </div>
+                                        }
+
+                                        <div class="mb-4">
+                                            <label class="block text-sm font-medium text-gray-700 mb-2">Street Address</label>
+                                            <InputText @bind-Value="deliveryForm.Street" 
+                                                       class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+                                                       placeholder="123 Main Street" />
+                                            <ValidationMessage For="@(() => deliveryForm.Street)" class="text-red-500 text-sm mt-1" />
+                                        </div>
+
+                                        <div class="grid grid-cols-2 md:grid-cols-3 gap-4 mb-4">
+                                            <div>
+                                                <label class="block text-sm font-medium text-gray-700 mb-2">City</label>
+                                                <InputText @bind-Value="deliveryForm.City" 
+                                                           class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500" />
+                                                <ValidationMessage For="@(() => deliveryForm.City)" class="text-red-500 text-sm mt-1" />
+                                            </div>
+                                            <div>
+                                                <label class="block text-sm font-medium text-gray-700 mb-2">State</label>
+                                                <InputText @bind-Value="deliveryForm.State" 
+                                                           class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500" />
+                                                <ValidationMessage For="@(() => deliveryForm.State)" class="text-red-500 text-sm mt-1" />
+                                            </div>
+                                            <div>
+                                                <label class="block text-sm font-medium text-gray-700 mb-2">ZIP Code</label>
+                                                <InputText @bind-Value="deliveryForm.PostalCode" 
+                                                           class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500" />
+                                                <ValidationMessage For="@(() => deliveryForm.PostalCode)" class="text-red-500 text-sm mt-1" />
+                                            </div>
+                                        </div>
+
+                                        <div class="mb-4">
+                                            <label class="block text-sm font-medium text-gray-700 mb-2">Delivery Instructions (Optional)</label>
+                                            <InputTextArea @bind-Value="deliveryForm.Instructions" 
+                                                           class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+                                                           placeholder="Apartment number, gate code, etc." rows="3" />
+                                        </div>
+
+                                        @if (currentUser != null)
+                                        {
+                                            <div class="mb-4">
+                                                <div class="flex items-center">
+                                                    <InputCheckbox @bind-Value="deliveryForm.SaveAddress" 
+                                                                   class="h-4 w-4 text-primary-600 focus:ring-primary-500 border-gray-300 rounded" />
+                                                    <label class="ml-2 block text-sm text-gray-700">Save this address for future orders</label>
+                                                </div>
+                                            </div>
+                                        }
+
+                                        @if (deliveryErrorMessages.Any())
+                                        {
+                                            <div class="mb-4 p-4 bg-red-50 border border-red-200 rounded-lg">
+                                                @foreach (var error in deliveryErrorMessages)
+                                                {
+                                                    <p class="text-red-800 text-sm">@error</p>
+                                                }
+                                            </div>
+                                        }
+
+                                        <div class="flex justify-end space-x-3">
+                                            @if (currentUser?.Addresses?.Any() == true && showNewAddressForm)
+                                            {
+                                                <button type="button" @onclick="HideNewAddressForm" 
+                                                        class="btn btn-outline px-6 py-3">
+                                                    Cancel
+                                                </button>
+                                            }
+                                            <button type="submit" disabled="@isDeliveryLoading" 
+                                                    class="btn btn-primary px-6 py-3">
+                                                @if (isDeliveryLoading)
+                                                {
+                                                    <span class="flex items-center">
+                                                        <svg class="animate-spin -ml-1 mr-2 h-4 w-4" fill="none" viewBox="0 0 24 24">
+                                                            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                                            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                                        </svg>
+                                                        Saving...
+                                                    </span>
+                                                }
+                                                else
+                                                {
+                                                    <span>Continue to Payment</span>
+                                                }
+                                            </button>
+                                        </div>
+                                    </EditForm>
+                                </div>
+                            }
+                        </div>
+                    }
+
+                    <!-- Payment Method -->
+                    @if (showPaymentSection)
+                    {
+                        <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+                            <h2 class="text-lg font-semibold text-gray-900 mb-6">Payment Method</h2>
+                            
+                            <div class="space-y-4">
+                                <div class="border border-gray-200 rounded-lg p-4">
+                                    <div class="flex items-center space-x-3">
+                                        <input type="radio" name="payment" checked disabled class="h-4 w-4 text-primary-600 border-gray-300" />
+                                        <div>
+                                            <div class="font-medium text-gray-900">Cash on Delivery</div>
+                                            <div class="text-sm text-gray-600">Pay when your order arrives</div>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div class="border border-gray-200 rounded-lg p-4 opacity-50">
+                                    <div class="flex items-center space-x-3">
+                                        <input type="radio" name="payment" disabled class="h-4 w-4 text-primary-600 border-gray-300" />
+                                        <div>
+                                            <div class="font-medium text-gray-900">Credit/Debit Card</div>
+                                            <div class="text-sm text-gray-600">Coming soon</div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    }
+                </div>
+
+                <!-- Order Summary -->
+                <div class="lg:col-span-1">
+                    <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6 sticky top-8">
+                        <h2 class="text-lg font-semibold text-gray-900 mb-4">Order Summary</h2>
+                        
+                        <!-- Cart Items -->
+                        <div class="space-y-4 mb-6">
+                            @if (cart?.Items != null)
+                            {
+                                @foreach (var item in cart.Items)
+                                {
+                                    <div class="flex items-center space-x-3">
+                                        <div class="w-12 h-12 bg-gray-200 rounded-lg flex items-center justify-center">
+                                            <span class="text-sm font-medium">@item.Quantity</span>
+                                        </div>
+                                        <div class="flex-1">
+                                            <h3 class="text-sm font-medium text-gray-900">@item.ProductName</h3>
+                                            <p class="text-sm text-gray-600">@item.Price.ToString("C") each</p>
+                                        </div>
+                                        <div class="text-sm font-medium text-gray-900">
+                                            @((item.Price * item.Quantity).ToString("C"))
+                                        </div>
+                                    </div>
+                                }
+                            }
+                        </div>
+
+                        <!-- Order Totals -->
+                        <div class="border-t border-gray-200 pt-4 space-y-2">
+                            <div class="flex justify-between text-sm">
+                                <span class="text-gray-600">Subtotal</span>
+                                <span class="text-gray-900">@cart?.Subtotal.ToString("C")</span>
+                            </div>
+                            <div class="flex justify-between text-sm">
+                                <span class="text-gray-600">Delivery Fee</span>
+                                <span class="text-gray-900">@deliveryFee.ToString("C")</span>
+                            </div>
+                            <div class="flex justify-between text-sm">
+                                <span class="text-gray-600">Tax</span>
+                                <span class="text-gray-900">@tax.ToString("C")</span>
+                            </div>
+                            <div class="border-t border-gray-200 pt-2 flex justify-between font-semibold">
+                                <span class="text-gray-900">Total</span>
+                                <span class="text-gray-900">@total.ToString("C")</span>
+                            </div>
+                        </div>
+
+                        <!-- Estimated Delivery Time -->
+                        <div class="mt-6 p-4 bg-green-50 rounded-lg">
+                            <div class="flex items-center space-x-2">
+                                <svg class="w-5 h-5 text-green-600" fill="currentColor" viewBox="0 0 20 20">
+                                    <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clip-rule="evenodd"></path>
+                                </svg>
+                                <div>
+                                    <div class="text-sm font-medium text-green-800">Estimated Delivery</div>
+                                    <div class="text-sm text-green-700">@estimatedDeliveryTime</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Place Order Button -->
+                        @if (showPaymentSection)
+                        {
+                            <button @onclick="PlaceOrder" disabled="@isOrderLoading" 
+                                    class="w-full mt-6 btn btn-primary py-4 text-lg font-medium">
+                                @if (isOrderLoading)
+                                {
+                                    <span class="flex items-center justify-center">
+                                        <svg class="animate-spin -ml-1 mr-3 h-5 w-5" fill="none" viewBox="0 0 24 24">
+                                            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                        </svg>
+                                        Placing Order...
+                                    </span>
+                                }
+                                else
+                                {
+                                    <span>Place Order • @total.ToString("C")</span>
+                                }
+                            </button>
+                        }
+                    </div>
+                </div>
+            </div>
+        }
+    </div>
+</div>
+
+@code {
+    private Cart? cart;
+    private User? currentUser;
+    
+    // UI State
+    private bool showDeliveryForm = false;
+    private bool showPaymentSection = false;
+    private bool showNewAddressForm = false;
+    
+    // Delivery form
+    private DeliveryForm deliveryForm = new();
+    private List<string> deliveryErrorMessages = new();
+    private bool isDeliveryLoading = false;
+    private string? selectedAddressId;
+    
+    // Order processing
+    private bool isOrderLoading = false;
+    
+    // Pricing
+    private decimal deliveryFee = 3.99m;
+    private decimal taxRate = 0.0875m; // 8.75%
+    private decimal tax => cart?.Subtotal * taxRate ?? 0;
+    private decimal total => (cart?.Subtotal ?? 0) + deliveryFee + tax;
+    private string estimatedDeliveryTime => DateTime.Now.AddMinutes(30 + (cart?.EstimatedPrepTime ?? 0)).ToString("h:mm tt");
+
+    protected override async Task OnInitializedAsync()
+    {
+        currentUser = await AuthService.GetCurrentUserAsync();
+        cart = await CartService.GetCartAsync();
+        
+        if (cart?.Items?.Any() != true)
+        {
+            return; // Will show empty cart message
+        }
+
+        // Show appropriate sections based on user state
+        if (currentUser != null)
+        {
+            showDeliveryForm = true;
+            
+            // Auto-select default address if available
+            var defaultAddress = currentUser.Addresses?.FirstOrDefault(a => a.IsDefault);
+            if (defaultAddress != null)
+            {
+                selectedAddressId = defaultAddress.Id;
+                showPaymentSection = true;
+            }
+            else if (currentUser.Addresses?.Any() != true)
+            {
+                showNewAddressForm = true;
+            }
+        }
+    }
+
+    private string GetUserInitials()
+    {
+        if (currentUser == null) return "U";
+        
+        var firstInitial = !string.IsNullOrEmpty(currentUser.FirstName) ? currentUser.FirstName[0].ToString() : "";
+        var lastInitial = !string.IsNullOrEmpty(currentUser.LastName) ? currentUser.LastName[0].ToString() : "";
+        
+        return (firstInitial + lastInitial).ToUpper();
+    }
+
+    private void ContinueAsGuest()
+    {
+        showDeliveryForm = true;
+        showNewAddressForm = true;
+    }
+
+    private void SelectAddress(string addressId)
+    {
+        selectedAddressId = addressId;
+        showPaymentSection = true;
+        showNewAddressForm = false;
+    }
+
+    private void ShowNewAddressForm()
+    {
+        showNewAddressForm = true;
+        selectedAddressId = null;
+        showPaymentSection = false;
+        
+        // Initialize form for authenticated users
+        if (currentUser != null)
+        {
+            deliveryForm.FirstName = currentUser.FirstName;
+            deliveryForm.LastName = currentUser.LastName;
+            deliveryForm.Email = currentUser.Email;
+            deliveryForm.Phone = currentUser.Phone;
+        }
+    }
+
+    private void HideNewAddressForm()
+    {
+        showNewAddressForm = false;
+        deliveryForm = new DeliveryForm();
+        
+        // If user has addresses, show payment section
+        if (currentUser?.Addresses?.Any() == true)
+        {
+            var defaultAddress = currentUser.Addresses.FirstOrDefault(a => a.IsDefault);
+            if (defaultAddress != null)
+            {
+                selectedAddressId = defaultAddress.Id;
+                showPaymentSection = true;
+            }
+        }
+    }
+
+    private async Task SaveDeliveryInfo()
+    {
+        if (isDeliveryLoading) return;
+
+        isDeliveryLoading = true;
+        deliveryErrorMessages.Clear();
+        StateHasChanged();
+
+        try
+        {
+            if (currentUser != null && deliveryForm.SaveAddress)
+            {
+                // Save address for authenticated user
+                var address = new Address
+                {
+                    Label = !string.IsNullOrEmpty(deliveryForm.Label) ? deliveryForm.Label : "Home",
+                    Street = deliveryForm.Street,
+                    City = deliveryForm.City,
+                    State = deliveryForm.State,
+                    PostalCode = deliveryForm.PostalCode,
+                    Instructions = deliveryForm.Instructions,
+                    IsDefault = currentUser.Addresses?.Count == 0
+                };
+
+                var result = await AuthService.AddAddressAsync(address);
+                if (result.Success)
+                {
+                    // Refresh user data
+                    currentUser = await AuthService.GetCurrentUserAsync();
+                    selectedAddressId = address.Id;
+                }
+            }
+
+            showPaymentSection = true;
+            showNewAddressForm = false;
+            await JSRuntime.InvokeVoidAsync("console.log", "Delivery info saved");
+        }
+        catch (Exception ex)
+        {
+            deliveryErrorMessages.Add("An error occurred while saving delivery information. Please try again.");
+            await JSRuntime.InvokeVoidAsync("console.error", "Delivery save error:", ex.Message);
+        }
+        finally
+        {
+            isDeliveryLoading = false;
+            StateHasChanged();
+        }
+    }
+
+    private async Task PlaceOrder()
+    {
+        if (isOrderLoading || cart?.Items?.Any() != true) return;
+
+        isOrderLoading = true;
+        StateHasChanged();
+
+        try
+        {
+            // Get delivery address
+            Address? deliveryAddress = null;
+            string customerName = "";
+            string customerEmail = "";
+            string customerPhone = "";
+
+            if (currentUser != null && !string.IsNullOrEmpty(selectedAddressId))
+            {
+                // Use selected saved address
+                deliveryAddress = currentUser.Addresses?.FirstOrDefault(a => a.Id == selectedAddressId);
+                customerName = currentUser.FullName;
+                customerEmail = currentUser.Email;
+                customerPhone = currentUser.Phone;
+            }
+            else if (showNewAddressForm)
+            {
+                // Use form data
+                deliveryAddress = new Address
+                {
+                    Street = deliveryForm.Street,
+                    City = deliveryForm.City,
+                    State = deliveryForm.State,
+                    PostalCode = deliveryForm.PostalCode,
+                    Instructions = deliveryForm.Instructions
+                };
+                customerName = $"{deliveryForm.FirstName} {deliveryForm.LastName}";
+                customerEmail = deliveryForm.Email;
+                customerPhone = deliveryForm.Phone;
+            }
+
+            if (deliveryAddress == null)
+            {
+                await JSRuntime.InvokeVoidAsync("alert", "Please provide delivery information");
+                return;
+            }
+
+            // Create order
+            var order = new Order
+            {
+                CustomerId = currentUser?.Id,
+                CustomerName = customerName,
+                CustomerEmail = customerEmail,
+                CustomerPhone = customerPhone,
+                DeliveryAddress = deliveryAddress,
+                Items = cart.Items.Select(item => new OrderItem
+                {
+                    ProductId = item.ProductId,
+                    ProductName = item.ProductName,
+                    Price = item.Price,
+                    Quantity = item.Quantity
+                }).ToList(),
+                Subtotal = cart.Subtotal,
+                DeliveryFee = deliveryFee,
+                Tax = tax,
+                Total = total,
+                PaymentMethod = "Cash on Delivery",
+                Status = OrderStatus.Pending,
+                EstimatedDeliveryTime = DateTime.Now.AddMinutes(30 + cart.EstimatedPrepTime)
+            };
+
+            await OrderService.CreateOrderAsync(order);
+            
+            // Clear cart
+            await CartService.ClearCartAsync();
+            
+            // Redirect to order confirmation
+            Navigation.NavigateTo($"/orders/{order.Id}");
+        }
+        catch (Exception ex)
+        {
+            await JSRuntime.InvokeVoidAsync("alert", "An error occurred while placing your order. Please try again.");
+            await JSRuntime.InvokeVoidAsync("console.error", "Order placement error:", ex.Message);
+        }
+        finally
+        {
+            isOrderLoading = false;
+            StateHasChanged();
+        }
+    }
+
+    public class DeliveryForm
+    {
+        [Required(ErrorMessage = "First name is required")]
+        public string FirstName { get; set; } = "";
+        
+        [Required(ErrorMessage = "Last name is required")]
+        public string LastName { get; set; } = "";
+        
+        [Required(ErrorMessage = "Email is required")]
+        [EmailAddress(ErrorMessage = "Please enter a valid email address")]
+        public string Email { get; set; } = "";
+        
+        [Required(ErrorMessage = "Phone number is required")]
+        [Phone(ErrorMessage = "Please enter a valid phone number")]
+        public string Phone { get; set; } = "";
+        
+        public string Label { get; set; } = "";
+        
+        [Required(ErrorMessage = "Street address is required")]
+        public string Street { get; set; } = "";
+        
+        [Required(ErrorMessage = "City is required")]
+        public string City { get; set; } = "";
+        
+        [Required(ErrorMessage = "State is required")]
+        public string State { get; set; } = "";
+        
+        [Required(ErrorMessage = "Postal code is required")]
+        public string PostalCode { get; set; } = "";
+        
+        public string Instructions { get; set; } = "";
+        public bool SaveAddress { get; set; } = false;
+    }
+}

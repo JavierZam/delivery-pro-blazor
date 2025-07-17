@@ -27,7 +27,7 @@ public class Address
     public string Street { get; set; } = string.Empty;
     public string City { get; set; } = string.Empty;
     public string State { get; set; } = string.Empty;
-    public string ZipCode { get; set; } = string.Empty;
+    public string PostalCode { get; set; } = string.Empty;
     public string? Instructions { get; set; } // Delivery instructions
     public bool IsDefault { get; set; } = false;
     public DateTime CreatedAt { get; set; } = DateTime.Now;

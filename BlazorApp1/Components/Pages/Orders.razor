@@ -51,7 +51,10 @@
                             <div class="flex justify-between items-start mb-4">
                                 <div class="flex-1">
                                     <h4 class="font-medium text-gray-900 mb-2">Delivery Address</h4>
-                                    <p class="text-gray-600">@order.DeliveryAddress</p>
+                                    <p class="text-gray-600">
+                                        @order.DeliveryAddress.Street<br />
+                                        @order.DeliveryAddress.City, @order.DeliveryAddress.State @order.DeliveryAddress.PostalCode
+                                    </p>
                                     
                                     <h4 class="font-medium text-gray-900 mt-4 mb-2">Items (@order.Items.Count)</h4>
                                     <ul class="space-y-1">
@@ -69,7 +72,7 @@
                                     <p class="text-2xl font-bold text-gray-900">$@order.TotalAmount.ToString("F2")</p>
                                     @if (order.Status == OrderStatus.OutForDelivery)
                                     {
-                                        <button class="btn btn-outline mt-2 text-sm" @onclick="() => TrackOrder(order.Id)">
+                                        <button class="btn btn-outline mt-2 text-sm" @onclick="@(() => TrackOrder(order.Id))">
                                             📍 Track Order
                                         </button>
                                     }
@@ -113,7 +116,13 @@
             {
                 CustomerName = "John Doe",
                 CustomerPhone = "+1234567890",
-                DeliveryAddress = "123 Main St, Apartment 4B, New York, NY 10001",
+                DeliveryAddress = new Address 
+                { 
+                    Street = "123 Main St, Apartment 4B", 
+                    City = "New York", 
+                    State = "NY", 
+                    PostalCode = "10001" 
+                },
                 Items = new List<OrderItem>
                 {
                     new() { ProductName = "Margherita Pizza", Price = 14.99m, Quantity = 1 },
@@ -128,7 +137,13 @@
             {
                 CustomerName = "Jane Smith",
                 CustomerPhone = "+1234567891",
-                DeliveryAddress = "456 Oak Avenue, Brooklyn, NY 11201",
+                DeliveryAddress = new Address 
+                { 
+                    Street = "456 Oak Avenue", 
+                    City = "Brooklyn", 
+                    State = "NY", 
+                    PostalCode = "11201" 
+                },
                 Items = new List<OrderItem>
                 {
                     new() { ProductName = "Chicken Burger", Price = 13.99m, Quantity = 1 },
@@ -142,7 +157,13 @@
             {
                 CustomerName = "Mike Johnson",
                 CustomerPhone = "+1234567892",
-                DeliveryAddress = "789 Pine Street, Manhattan, NY 10002",
+                DeliveryAddress = new Address 
+                { 
+                    Street = "789 Pine Street", 
+                    City = "Manhattan", 
+                    State = "NY", 
+                    PostalCode = "10002" 
+                },
                 Items = new List<OrderItem>
                 {
                     new() { ProductName = "California Roll", Price = 8.99m, Quantity = 2 },

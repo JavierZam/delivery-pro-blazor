@@ -1,4 +1,5 @@
 @inject ICartService CartService
+@inject NavigationManager Navigation
 @implements IDisposable
 
 <!-- Cart Drawer Overlay -->
@@ -196,15 +197,13 @@
     private async Task GoToCheckout()
     {
         await CloseDrawer();
-        // TODO: Navigate to checkout page
-        Console.WriteLine("Navigating to checkout...");
+        Navigation.NavigateTo("/checkout");
     }
 
     private async Task ViewCart()
     {
         await CloseDrawer();
-        // TODO: Navigate to cart page
-        Console.WriteLine("Navigating to cart page...");
+        Navigation.NavigateTo("/checkout");
     }
 
     private string GetCategoryEmoji(string category)

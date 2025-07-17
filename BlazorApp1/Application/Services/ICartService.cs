@@ -13,4 +13,6 @@ public interface ICartService
     Task ClearCartAsync();
     Task<int> GetCartItemCountAsync();
     Task<CartItem?> GetCartItemAsync(string productId);
+    Task TransferGuestCartToUserAsync();
+    Task ClearUserCartCacheAsync();
 }

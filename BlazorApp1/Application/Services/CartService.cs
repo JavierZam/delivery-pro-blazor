@@ -6,21 +6,32 @@ namespace BlazorApp1.Application.Services;
 public class CartService : ICartService
 {
     private readonly ILocalStorageService _localStorage;
+    private readonly IAuthService _authService;
     private const string CART_KEY = "delivery_cart";
+    private const string USER_CART_KEY_PREFIX = "delivery_cart_user_";
     private Cart? _cart;
 
     public event Action? OnCartChanged;
 
-    public CartService(ILocalStorageService localStorage)
+    public CartService(ILocalStorageService localStorage, IAuthService authService)
     {
         _localStorage = localStorage;
+        _authService = authService;
     }
 
     public async Task<Cart> GetCartAsync()
     {
         if (_cart == null)
         {
-            _cart = await _localStorage.GetItemAsync<Cart>(CART_KEY) ?? new Cart();
+            var cartKey = await GetCartKeyAsync();
+            _cart = await _localStorage.GetItemAsync<Cart>(cartKey) ?? new Cart();
+            
+            // If user is authenticated and cart is empty, try to merge guest cart
+            var currentUser = await _authService.GetCurrentUserAsync();
+            if (currentUser != null && _cart.Items.Count == 0)
+            {
+                await MergeGuestCartAsync();
+            }
         }
         return _cart;
     }
@@ -107,7 +118,63 @@ public class CartService : ICartService
     private async Task SaveCartAsync(Cart cart)
     {
         _cart = cart;
-        await _localStorage.SetItemAsync(CART_KEY, cart);
+        var cartKey = await GetCartKeyAsync();
+        await _localStorage.SetItemAsync(cartKey, cart);
         OnCartChanged?.Invoke();
+    }
+
+    private async Task<string> GetCartKeyAsync()
+    {
+        var currentUser = await _authService.GetCurrentUserAsync();
+        return currentUser != null ? $"{USER_CART_KEY_PREFIX}{currentUser.Id}" : CART_KEY;
+    }
+
+    private async Task MergeGuestCartAsync()
+    {
+        try
+        {
+            // Get guest cart
+            var guestCart = await _localStorage.GetItemAsync<Cart>(CART_KEY);
+            if (guestCart?.Items?.Any() == true)
+            {
+                // Merge guest cart items into user cart
+                foreach (var guestItem in guestCart.Items)
+                {
+                    var existingItem = _cart!.Items.FirstOrDefault(item => item.ProductId == guestItem.ProductId);
+                    if (existingItem != null)
+                    {
+                        existingItem.Quantity += guestItem.Quantity;
+                        existingItem.AddedAt = DateTime.Now;
+                    }
+                    else
+                    {
+                        _cart.Items.Add(guestItem);
+                    }
+                }
+
+                _cart.UpdatedAt = DateTime.Now;
+                
+                // Save merged cart and clear guest cart
+                await SaveCartAsync(_cart);
+                await _localStorage.RemoveItemAsync(CART_KEY);
+            }
+        }
+        catch (Exception)
+        {
+            // Ignore merge errors to prevent disrupting user experience
+        }
+    }
+
+    public async Task TransferGuestCartToUserAsync()
+    {
+        // Force merge when user logs in
+        _cart = null; // Clear cached cart
+        await GetCartAsync(); // This will trigger merge
+    }
+
+    public async Task ClearUserCartCacheAsync()
+    {
+        // Clear cached cart when user logs out
+        _cart = null;
     }
 }

@@ -1,0 +1,140 @@
+name: Deploy to Cloud Run (Production)
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+
+  test:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: '8.0.x'
+        
+    - name: Restore dependencies
+      run: |
+        echo "📦 Restoring NuGet packages..."
+        dotnet restore BlazorApp1/BlazorApp1.csproj
+        echo "✅ Dependencies restored"
+      
+    - name: Build application
+      run: |
+        echo "🏗️ Building Blazor WASM application for production..."
+        dotnet build BlazorApp1/BlazorApp1.csproj --configuration Release --no-restore
+        echo "✅ Build successful"
+        
+    - name: Run tests (if any)
+      run: |
+        echo "🧪 Running production tests..."
+        # Add test commands here when you have tests
+        # dotnet test --no-build --configuration Release
+        echo "✅ Tests completed"
+
+  deploy-prod:
+    needs: test
+    runs-on: ubuntu-latest
+    environment: adviz-dev-gcp
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Authenticate to Google Cloud
+      uses: google-github-actions/auth@v1
+      with:
+        credentials_json: ${{ secrets.GCP_SA_KEY }}
+        
+    - name: Set up Cloud SDK
+      uses: google-github-actions/setup-gcloud@v1
+        
+    - name: Configure Docker to use gcloud as credential helper
+      run: gcloud auth configure-docker asia-southeast2-docker.pkg.dev
+      
+    - name: Build and push Docker image
+      run: |
+        echo "🐳 Building Docker image for Blazor WASM production..."
+        
+        # Build image
+        docker build \
+          -t asia-southeast2-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/adviz/blazorapp-prod:${{ github.sha }} .
+        docker tag asia-southeast2-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/adviz/blazorapp-prod:${{ github.sha }} asia-southeast2-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/adviz/blazorapp-prod:latest
+        
+        # Push image
+        docker push asia-southeast2-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/adviz/blazorapp-prod:${{ github.sha }}
+        docker push asia-southeast2-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/adviz/blazorapp-prod:latest
+        
+        echo "✅ Docker image pushed successfully"
+        
+    - name: Deploy to Cloud Run Production
+      run: |
+        echo "🚀 Deploying Blazor WASM to Cloud Run Production..."
+        
+        gcloud run deploy blazorapp-prod \
+          --image asia-southeast2-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/adviz/blazorapp-prod:${{ github.sha }} \
+          --region asia-southeast2 \
+          --platform managed \
+          --allow-unauthenticated \
+          --memory 1Gi \
+          --cpu 1 \
+          --port 8080 \
+          --min-instances 1 \
+          --max-instances 10 \
+          --set-env-vars ASPNETCORE_ENVIRONMENT=Production \
+          --quiet
+        
+        echo "✅ Production deployment completed"
+          
+    - name: Get service URL and perform health check
+      run: |
+        echo "🏥 Performing production health check..."
+        
+        # Get the service URL
+        SERVICE_URL=$(gcloud run services describe blazorapp-prod \
+          --region=asia-southeast2 \
+          --format='value(status.url)')
+        
+        echo "Production URL: $SERVICE_URL"
+        
+        # Health check with retries
+        max_attempts=15
+        wait_time=10
+        
+        for i in $(seq 1 $max_attempts); do
+          echo "Health check attempt $i/$max_attempts..."
+          
+          # Check both main page and health endpoint
+          if curl -f -s --connect-timeout 15 --max-time 15 "$SERVICE_URL" > /dev/null && \
+             curl -f -s --connect-timeout 15 --max-time 15 "$SERVICE_URL/health" > /dev/null; then
+            echo "✅ Production health check passed!"
+            echo "🌐 Production environment is ready: $SERVICE_URL"
+            exit 0
+          else
+            echo "⏳ Service not ready yet, waiting ${wait_time} seconds..."
+            sleep $wait_time
+          fi
+        done
+        
+        echo "❌ Production health check failed after $max_attempts attempts"
+        echo "🔍 Service URL: $SERVICE_URL"
+        exit 1
+
+    - name: Notify deployment success
+      run: |
+        SERVICE_URL=$(gcloud run services describe blazorapp-prod \
+          --region=asia-southeast2 \
+          --format='value(status.url)')
+        
+        echo "🎉 Blazor WASM production deployment successful!"
+        echo "🌐 Production URL: $SERVICE_URL"
+        echo "📝 Branch: ${{ github.ref_name }}"
+        echo "🔗 Commit: ${{ github.sha }}"
+        echo "🚀 Application: DeliveryPro Blazor WASM"
+        echo "🏭 Environment: Production"

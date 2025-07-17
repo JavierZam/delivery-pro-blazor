@@ -1,0 +1,775 @@
+@page "/profile"
+@inject IAuthService AuthService
+@inject NavigationManager Navigation
+@inject IJSRuntime JSRuntime
+
+@using System.ComponentModel.DataAnnotations
+
+<PageTitle>My Profile - DeliveryPro</PageTitle>
+
+<div class="min-h-screen bg-gray-50 py-8">
+    <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+        <!-- Header -->
+        <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-6">
+            <div class="flex items-center space-x-4">
+                <div class="w-20 h-20 bg-primary-600 rounded-full flex items-center justify-center">
+                    @if (!string.IsNullOrEmpty(currentUser?.ProfilePictureUrl))
+                    {
+                        <img src="@currentUser.ProfilePictureUrl" alt="Profile" class="w-20 h-20 rounded-full object-cover" />
+                    }
+                    else
+                    {
+                        <span class="text-white font-bold text-2xl">@GetUserInitials()</span>
+                    }
+                </div>
+                <div>
+                    <h1 class="text-2xl font-bold text-gray-900">@currentUser?.FullName</h1>
+                    <p class="text-gray-600">@currentUser?.Email</p>
+                    <p class="text-sm text-gray-500">Member since @currentUser?.CreatedAt.ToString("MMMM yyyy")</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <!-- Sidebar -->
+            <div class="lg:col-span-1">
+                <nav class="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
+                    <ul class="space-y-2">
+                        <li>
+                            <button @onclick="SetProfileTab" 
+                                    class="@GetTabClass("profile") w-full text-left px-4 py-3 rounded-lg transition-colors">
+                                <span>👤 Personal Information</span>
+                            </button>
+                        </li>
+                        <li>
+                            <button @onclick="SetAddressesTab" 
+                                    class="@GetTabClass("addresses") w-full text-left px-4 py-3 rounded-lg transition-colors">
+                                <span>📍 Delivery Addresses</span>
+                            </button>
+                        </li>
+                        <li>
+                            <button @onclick="SetSecurityTab" 
+                                    class="@GetTabClass("security") w-full text-left px-4 py-3 rounded-lg transition-colors">
+                                <span>🔒 Security Settings</span>
+                            </button>
+                        </li>
+                        <li>
+                            <button @onclick="SetOrdersTab" 
+                                    class="@GetTabClass("orders") w-full text-left px-4 py-3 rounded-lg transition-colors">
+                                <span>📦 Order History</span>
+                            </button>
+                        </li>
+                    </ul>
+                </nav>
+            </div>
+
+            <!-- Main Content -->
+            <div class="lg:col-span-2">
+                @if (activeTab == "profile")
+                {
+                    <!-- Personal Information -->
+                    <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+                        <h2 class="text-xl font-semibold text-gray-900 mb-6">Personal Information</h2>
+                        
+                        <EditForm Model="@profileForm" OnValidSubmit="UpdateProfile" novalidate>
+                            <DataAnnotationsValidator />
+                            
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-2">First Name</label>
+                                    <InputText @bind-Value="profileForm.FirstName" 
+                                               class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500" />
+                                    <ValidationMessage For="@(() => profileForm.FirstName)" class="text-red-500 text-sm mt-1" />
+                                </div>
+                                
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-2">Last Name</label>
+                                    <InputText @bind-Value="profileForm.LastName" 
+                                               class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500" />
+                                    <ValidationMessage For="@(() => profileForm.LastName)" class="text-red-500 text-sm mt-1" />
+                                </div>
+                            </div>
+
+                            <div class="mt-6">
+                                <label class="block text-sm font-medium text-gray-700 mb-2">Email Address</label>
+                                <input type="email" value="@currentUser?.Email" disabled 
+                                       class="w-full px-4 py-3 border border-gray-300 rounded-lg bg-gray-50 text-gray-500" />
+                                <p class="text-sm text-gray-500 mt-1">Email cannot be changed</p>
+                            </div>
+
+                            <div class="mt-6">
+                                <label class="block text-sm font-medium text-gray-700 mb-2">Phone Number</label>
+                                <InputText @bind-Value="profileForm.Phone" 
+                                           class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500" />
+                                <ValidationMessage For="@(() => profileForm.Phone)" class="text-red-500 text-sm mt-1" />
+                            </div>
+
+                            @if (errorMessages.Any())
+                            {
+                                <div class="mt-6 p-4 bg-red-50 border border-red-200 rounded-lg">
+                                    @foreach (var error in errorMessages)
+                                    {
+                                        <p class="text-red-800 text-sm">@error</p>
+                                    }
+                                </div>
+                            }
+
+                            @if (successMessage != null)
+                            {
+                                <div class="mt-6 p-4 bg-green-50 border border-green-200 rounded-lg">
+                                    <p class="text-green-800 text-sm">@successMessage</p>
+                                </div>
+                            }
+
+                            <div class="mt-6 flex justify-end">
+                                <button type="submit" disabled="@isLoading" 
+                                        class="btn btn-primary px-6 py-3">
+                                    @if (isLoading)
+                                    {
+                                        <span class="flex items-center">
+                                            <svg class="animate-spin -ml-1 mr-2 h-4 w-4" fill="none" viewBox="0 0 24 24">
+                                                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                            </svg>
+                                            Updating...
+                                        </span>
+                                    }
+                                    else
+                                    {
+                                        <span>Update Profile</span>
+                                    }
+                                </button>
+                            </div>
+                        </EditForm>
+                    </div>
+                }
+                else if (activeTab == "addresses")
+                {
+                    <!-- Delivery Addresses -->
+                    <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+                        <div class="flex justify-between items-center mb-6">
+                            <h2 class="text-xl font-semibold text-gray-900">Delivery Addresses</h2>
+                            <button @onclick="OpenAddAddressModal" class="btn btn-primary">
+                                + Add New Address
+                            </button>
+                        </div>
+
+                        @if (currentUser?.Addresses?.Any() == true)
+                        {
+                            <div class="space-y-4">
+                                @foreach (var address in currentUser.Addresses)
+                                {
+                                    <div class="border border-gray-200 rounded-lg p-4 @(address.IsDefault ? "border-primary-500 bg-primary-50" : "")">
+                                        <div class="flex justify-between items-start">
+                                            <div class="flex-1">
+                                                <div class="flex items-center space-x-2 mb-2">
+                                                    <h3 class="font-medium text-gray-900">@address.Label</h3>
+                                                    @if (address.IsDefault)
+                                                    {
+                                                        <span class="bg-primary-100 text-primary-800 px-2 py-1 rounded-full text-xs font-medium">Default</span>
+                                                    }
+                                                </div>
+                                                <p class="text-gray-600 text-sm">
+                                                    @address.Street<br />
+                                                    @address.City, @address.State @address.PostalCode
+                                                </p>
+                                                @if (!string.IsNullOrEmpty(address.Instructions))
+                                                {
+                                                    <p class="text-gray-500 text-sm mt-1">
+                                                        <em>@address.Instructions</em>
+                                                    </p>
+                                                }
+                                            </div>
+                                            <div class="flex space-x-2">
+                                                @if (!address.IsDefault)
+                                                {
+                                                    <button @onclick="@(() => SetDefaultAddress(address.Id))" 
+                                                            class="text-primary-600 hover:text-primary-500 text-sm">
+                                                        Set Default
+                                                    </button>
+                                                }
+                                                <button @onclick="@(() => EditAddress(address))" 
+                                                        class="text-gray-600 hover:text-gray-500 text-sm">
+                                                    Edit
+                                                </button>
+                                                <button @onclick="@(() => DeleteAddress(address.Id))" 
+                                                        class="text-red-600 hover:text-red-500 text-sm">
+                                                    Delete
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                }
+                            </div>
+                        }
+                        else
+                        {
+                            <div class="text-center py-8">
+                                <div class="text-gray-400 text-6xl mb-4">📍</div>
+                                <h3 class="text-lg font-medium text-gray-900 mb-2">No addresses saved</h3>
+                                <p class="text-gray-600 mb-4">Add your delivery addresses to make ordering faster</p>
+                                <button @onclick="OpenAddAddressModal" class="btn btn-primary">
+                                    Add Your First Address
+                                </button>
+                            </div>
+                        }
+                    </div>
+                }
+                else if (activeTab == "security")
+                {
+                    <!-- Security Settings -->
+                    <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+                        <h2 class="text-xl font-semibold text-gray-900 mb-6">Security Settings</h2>
+                        
+                        <EditForm Model="@passwordForm" OnValidSubmit="ChangePassword" novalidate>
+                            <DataAnnotationsValidator />
+                            
+                            <div class="space-y-6">
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-2">Current Password</label>
+                                    <InputText @bind-Value="passwordForm.CurrentPassword" type="password"
+                                               class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500" />
+                                    <ValidationMessage For="@(() => passwordForm.CurrentPassword)" class="text-red-500 text-sm mt-1" />
+                                </div>
+
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-2">New Password</label>
+                                    <InputText @bind-Value="passwordForm.NewPassword" type="password"
+                                               class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500" />
+                                    <ValidationMessage For="@(() => passwordForm.NewPassword)" class="text-red-500 text-sm mt-1" />
+                                </div>
+
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-2">Confirm New Password</label>
+                                    <InputText @bind-Value="passwordForm.ConfirmPassword" type="password"
+                                               class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500" />
+                                    <ValidationMessage For="@(() => passwordForm.ConfirmPassword)" class="text-red-500 text-sm mt-1" />
+                                </div>
+                            </div>
+
+                            @if (passwordErrorMessages.Any())
+                            {
+                                <div class="mt-6 p-4 bg-red-50 border border-red-200 rounded-lg">
+                                    @foreach (var error in passwordErrorMessages)
+                                    {
+                                        <p class="text-red-800 text-sm">@error</p>
+                                    }
+                                </div>
+                            }
+
+                            @if (passwordSuccessMessage != null)
+                            {
+                                <div class="mt-6 p-4 bg-green-50 border border-green-200 rounded-lg">
+                                    <p class="text-green-800 text-sm">@passwordSuccessMessage</p>
+                                </div>
+                            }
+
+                            <div class="mt-6 flex justify-end">
+                                <button type="submit" disabled="@isPasswordLoading" 
+                                        class="btn btn-primary px-6 py-3">
+                                    @if (isPasswordLoading)
+                                    {
+                                        <span class="flex items-center">
+                                            <svg class="animate-spin -ml-1 mr-2 h-4 w-4" fill="none" viewBox="0 0 24 24">
+                                                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                            </svg>
+                                            Changing...
+                                        </span>
+                                    }
+                                    else
+                                    {
+                                        <span>Change Password</span>
+                                    }
+                                </button>
+                            </div>
+                        </EditForm>
+                    </div>
+                }
+                else if (activeTab == "orders")
+                {
+                    <!-- Order History -->
+                    <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+                        <h2 class="text-xl font-semibold text-gray-900 mb-6">Order History</h2>
+                        
+                        <div class="text-center py-8">
+                            <div class="text-gray-400 text-6xl mb-4">📦</div>
+                            <h3 class="text-lg font-medium text-gray-900 mb-2">No orders yet</h3>
+                            <p class="text-gray-600 mb-4">When you place orders, they'll appear here</p>
+                            <a href="/menu" class="btn btn-primary">
+                                Browse Menu
+                            </a>
+                        </div>
+                    </div>
+                }
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Add/Edit Address Modal -->
+@if (showAddressModal)
+{
+    <div class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+        <div class="bg-white rounded-lg shadow-xl max-w-md w-full max-h-[90vh] overflow-y-auto">
+            <div class="p-6">
+                <div class="flex justify-between items-center mb-6">
+                    <h3 class="text-lg font-semibold text-gray-900">
+                        @(editingAddress != null ? "Edit Address" : "Add New Address")
+                    </h3>
+                    <button @onclick="CloseAddressModal" class="text-gray-400 hover:text-gray-600">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                        </svg>
+                    </button>
+                </div>
+
+                <EditForm Model="@addressForm" OnValidSubmit="SaveAddress" novalidate>
+                    <DataAnnotationsValidator />
+                    
+                    <div class="space-y-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Address Label</label>
+                            <InputText @bind-Value="addressForm.Label" 
+                                       class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+                                       placeholder="Home, Work, etc." />
+                            <ValidationMessage For="@(() => addressForm.Label)" class="text-red-500 text-sm mt-1" />
+                        </div>
+
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Street Address</label>
+                            <InputText @bind-Value="addressForm.Street" 
+                                       class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+                                       placeholder="123 Main Street" />
+                            <ValidationMessage For="@(() => addressForm.Street)" class="text-red-500 text-sm mt-1" />
+                        </div>
+
+                        <div class="grid grid-cols-2 gap-4">
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-2">City</label>
+                                <InputText @bind-Value="addressForm.City" 
+                                           class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+                                           placeholder="City" />
+                                <ValidationMessage For="@(() => addressForm.City)" class="text-red-500 text-sm mt-1" />
+                            </div>
+
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-2">State</label>
+                                <InputText @bind-Value="addressForm.State" 
+                                           class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+                                           placeholder="State" />
+                                <ValidationMessage For="@(() => addressForm.State)" class="text-red-500 text-sm mt-1" />
+                            </div>
+                        </div>
+
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Postal Code</label>
+                            <InputText @bind-Value="addressForm.PostalCode" 
+                                       class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+                                       placeholder="12345" />
+                            <ValidationMessage For="@(() => addressForm.PostalCode)" class="text-red-500 text-sm mt-1" />
+                        </div>
+
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Delivery Instructions (Optional)</label>
+                            <InputTextArea @bind-Value="addressForm.Instructions" 
+                                           class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+                                           placeholder="Special delivery instructions..." rows="3" />
+                        </div>
+
+                        @if (currentUser?.Addresses?.Count == 0 || editingAddress?.IsDefault == true)
+                        {
+                            <div class="flex items-center">
+                                <input type="checkbox" checked disabled class="h-4 w-4 text-primary-600 border-gray-300 rounded" />
+                                <label class="ml-2 block text-sm text-gray-700">Set as default address</label>
+                            </div>
+                        }
+                        else
+                        {
+                            <div class="flex items-center">
+                                <InputCheckbox @bind-Value="addressForm.IsDefault" 
+                                               class="h-4 w-4 text-primary-600 focus:ring-primary-500 border-gray-300 rounded" />
+                                <label class="ml-2 block text-sm text-gray-700">Set as default address</label>
+                            </div>
+                        }
+                    </div>
+
+                    @if (addressErrorMessages.Any())
+                    {
+                        <div class="mt-6 p-4 bg-red-50 border border-red-200 rounded-lg">
+                            @foreach (var error in addressErrorMessages)
+                            {
+                                <p class="text-red-800 text-sm">@error</p>
+                            }
+                        </div>
+                    }
+
+                    <div class="mt-6 flex justify-end space-x-3">
+                        <button type="button" @onclick="CloseAddressModal" 
+                                class="btn btn-outline px-6 py-3">
+                            Cancel
+                        </button>
+                        <button type="submit" disabled="@isAddressLoading" 
+                                class="btn btn-primary px-6 py-3">
+                            @if (isAddressLoading)
+                            {
+                                <span class="flex items-center">
+                                    <svg class="animate-spin -ml-1 mr-2 h-4 w-4" fill="none" viewBox="0 0 24 24">
+                                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                    </svg>
+                                    Saving...
+                                </span>
+                            }
+                            else
+                            {
+                                <span>@(editingAddress != null ? "Update Address" : "Add Address")</span>
+                            }
+                        </button>
+                    </div>
+                </EditForm>
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    private User? currentUser;
+    private string activeTab = "profile";
+    
+    // Profile form
+    private ProfileUpdateForm profileForm = new();
+    private List<string> errorMessages = new();
+    private string? successMessage;
+    private bool isLoading = false;
+    
+    // Password form
+    private PasswordChangeForm passwordForm = new();
+    private List<string> passwordErrorMessages = new();
+    private string? passwordSuccessMessage;
+    private bool isPasswordLoading = false;
+    
+    // Address management
+    private bool showAddressModal = false;
+    private AddressForm addressForm = new();
+    private Address? editingAddress;
+    private List<string> addressErrorMessages = new();
+    private bool isAddressLoading = false;
+
+    protected override async Task OnInitializedAsync()
+    {
+        currentUser = await AuthService.GetCurrentUserAsync();
+        
+        if (currentUser == null)
+        {
+            Navigation.NavigateTo("/signin");
+            return;
+        }
+
+        // Initialize profile form with current user data
+        profileForm.FirstName = currentUser.FirstName;
+        profileForm.LastName = currentUser.LastName;
+        profileForm.Phone = currentUser.Phone;
+    }
+
+    private string GetUserInitials()
+    {
+        if (currentUser == null) return "U";
+        
+        var firstInitial = !string.IsNullOrEmpty(currentUser.FirstName) ? currentUser.FirstName[0].ToString() : "";
+        var lastInitial = !string.IsNullOrEmpty(currentUser.LastName) ? currentUser.LastName[0].ToString() : "";
+        
+        return (firstInitial + lastInitial).ToUpper();
+    }
+
+    private void SetActiveTab(string tab)
+    {
+        activeTab = tab;
+        // Clear any messages when switching tabs
+        ClearMessages();
+    }
+
+    // Tab selection methods
+    private void SetProfileTab() => SetActiveTab("profile");
+    private void SetAddressesTab() => SetActiveTab("addresses");
+    private void SetSecurityTab() => SetActiveTab("security");
+    private void SetOrdersTab() => SetActiveTab("orders");
+
+    private string GetTabClass(string tab)
+    {
+        return activeTab == tab 
+            ? "bg-primary-100 text-primary-700 font-medium"
+            : "text-gray-600 hover:bg-gray-100 hover:text-gray-900";
+    }
+
+    private void ClearMessages()
+    {
+        errorMessages.Clear();
+        successMessage = null;
+        passwordErrorMessages.Clear();
+        passwordSuccessMessage = null;
+        addressErrorMessages.Clear();
+    }
+
+    // Profile update methods
+    private async Task UpdateProfile()
+    {
+        if (isLoading || currentUser == null) return;
+
+        isLoading = true;
+        errorMessages.Clear();
+        successMessage = null;
+        StateHasChanged();
+
+        try
+        {
+            // Update user object
+            currentUser.FirstName = profileForm.FirstName;
+            currentUser.LastName = profileForm.LastName;
+            currentUser.Phone = profileForm.Phone;
+
+            var result = await AuthService.UpdateProfileAsync(currentUser);
+            
+            if (result.Success)
+            {
+                successMessage = "Profile updated successfully!";
+                await JSRuntime.InvokeVoidAsync("console.log", "Profile updated successfully");
+            }
+            else
+            {
+                errorMessages = result.Errors;
+            }
+        }
+        catch (Exception ex)
+        {
+            errorMessages.Add("An error occurred while updating your profile. Please try again.");
+            await JSRuntime.InvokeVoidAsync("console.error", "Profile update error:", ex.Message);
+        }
+        finally
+        {
+            isLoading = false;
+            StateHasChanged();
+        }
+    }
+
+    // Password change methods
+    private async Task ChangePassword()
+    {
+        if (isPasswordLoading) return;
+
+        isPasswordLoading = true;
+        passwordErrorMessages.Clear();
+        passwordSuccessMessage = null;
+        StateHasChanged();
+
+        try
+        {
+            if (passwordForm.NewPassword != passwordForm.ConfirmPassword)
+            {
+                passwordErrorMessages.Add("New passwords do not match");
+                return;
+            }
+
+            var result = await AuthService.ChangePasswordAsync(passwordForm.CurrentPassword, passwordForm.NewPassword);
+            
+            if (result.Success)
+            {
+                passwordSuccessMessage = "Password changed successfully!";
+                passwordForm = new PasswordChangeForm(); // Clear form
+                await JSRuntime.InvokeVoidAsync("console.log", "Password changed successfully");
+            }
+            else
+            {
+                passwordErrorMessages = result.Errors;
+            }
+        }
+        catch (Exception ex)
+        {
+            passwordErrorMessages.Add("An error occurred while changing your password. Please try again.");
+            await JSRuntime.InvokeVoidAsync("console.error", "Password change error:", ex.Message);
+        }
+        finally
+        {
+            isPasswordLoading = false;
+            StateHasChanged();
+        }
+    }
+
+    // Address management methods
+    private void OpenAddAddressModal()
+    {
+        editingAddress = null;
+        addressForm = new AddressForm();
+        addressErrorMessages.Clear();
+        showAddressModal = true;
+    }
+
+    private void EditAddress(Address address)
+    {
+        editingAddress = address;
+        addressForm = new AddressForm
+        {
+            Label = address.Label,
+            Street = address.Street,
+            City = address.City,
+            State = address.State,
+            PostalCode = address.PostalCode,
+            Instructions = address.Instructions,
+            IsDefault = address.IsDefault
+        };
+        addressErrorMessages.Clear();
+        showAddressModal = true;
+    }
+
+    private void CloseAddressModal()
+    {
+        showAddressModal = false;
+        editingAddress = null;
+        addressForm = new AddressForm();
+        addressErrorMessages.Clear();
+    }
+
+    private async Task SaveAddress()
+    {
+        if (isAddressLoading) return;
+
+        isAddressLoading = true;
+        addressErrorMessages.Clear();
+        StateHasChanged();
+
+        try
+        {
+            var address = new Address
+            {
+                Id = editingAddress?.Id ?? Guid.NewGuid().ToString(),
+                Label = addressForm.Label,
+                Street = addressForm.Street,
+                City = addressForm.City,
+                State = addressForm.State,
+                PostalCode = addressForm.PostalCode,
+                Instructions = addressForm.Instructions,
+                IsDefault = addressForm.IsDefault || (currentUser?.Addresses?.Count == 0)
+            };
+
+            AuthResult result;
+            if (editingAddress != null)
+            {
+                result = await AuthService.UpdateAddressAsync(address);
+            }
+            else
+            {
+                result = await AuthService.AddAddressAsync(address);
+            }
+
+            if (result.Success)
+            {
+                // Refresh current user to get updated addresses
+                currentUser = await AuthService.GetCurrentUserAsync();
+                CloseAddressModal();
+                await JSRuntime.InvokeVoidAsync("console.log", "Address saved successfully");
+            }
+            else
+            {
+                addressErrorMessages = result.Errors;
+            }
+        }
+        catch (Exception ex)
+        {
+            addressErrorMessages.Add("An error occurred while saving the address. Please try again.");
+            await JSRuntime.InvokeVoidAsync("console.error", "Address save error:", ex.Message);
+        }
+        finally
+        {
+            isAddressLoading = false;
+            StateHasChanged();
+        }
+    }
+
+    private async Task SetDefaultAddress(string addressId)
+    {
+        try
+        {
+            var result = await AuthService.SetDefaultAddressAsync(addressId);
+            if (result.Success)
+            {
+                // Refresh current user to get updated addresses
+                currentUser = await AuthService.GetCurrentUserAsync();
+                StateHasChanged();
+                await JSRuntime.InvokeVoidAsync("console.log", "Default address updated");
+            }
+        }
+        catch (Exception ex)
+        {
+            await JSRuntime.InvokeVoidAsync("console.error", "Set default address error:", ex.Message);
+        }
+    }
+
+    private async Task DeleteAddress(string addressId)
+    {
+        if (await JSRuntime.InvokeAsync<bool>("confirm", "Are you sure you want to delete this address?"))
+        {
+            try
+            {
+                var result = await AuthService.DeleteAddressAsync(addressId);
+                if (result.Success)
+                {
+                    // Refresh current user to get updated addresses
+                    currentUser = await AuthService.GetCurrentUserAsync();
+                    StateHasChanged();
+                    await JSRuntime.InvokeVoidAsync("console.log", "Address deleted successfully");
+                }
+            }
+            catch (Exception ex)
+            {
+                await JSRuntime.InvokeVoidAsync("console.error", "Delete address error:", ex.Message);
+            }
+        }
+    }
+
+    // Form models
+    public class ProfileUpdateForm
+    {
+        [Required(ErrorMessage = "First name is required")]
+        public string FirstName { get; set; } = "";
+
+        [Required(ErrorMessage = "Last name is required")]
+        public string LastName { get; set; } = "";
+
+        [Phone(ErrorMessage = "Please enter a valid phone number")]
+        public string Phone { get; set; } = "";
+    }
+
+    public class PasswordChangeForm
+    {
+        [Required(ErrorMessage = "Current password is required")]
+        public string CurrentPassword { get; set; } = "";
+        
+        [Required(ErrorMessage = "New password is required")]
+        [MinLength(6, ErrorMessage = "Password must be at least 6 characters")]
+        public string NewPassword { get; set; } = "";
+        
+        [Required(ErrorMessage = "Please confirm your new password")]
+        public string ConfirmPassword { get; set; } = "";
+    }
+
+    public class AddressForm
+    {
+        [Required(ErrorMessage = "Address label is required")]
+        public string Label { get; set; } = "";
+        
+        [Required(ErrorMessage = "Street address is required")]
+        public string Street { get; set; } = "";
+        
+        [Required(ErrorMessage = "City is required")]
+        public string City { get; set; } = "";
+        
+        [Required(ErrorMessage = "State is required")]
+        public string State { get; set; } = "";
+        
+        [Required(ErrorMessage = "Postal code is required")]
+        public string PostalCode { get; set; } = "";
+        
+        public string Instructions { get; set; } = "";
+        public bool IsDefault { get; set; } = false;
+    }
+}

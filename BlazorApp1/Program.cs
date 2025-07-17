@@ -17,8 +17,8 @@ builder.Services.AddBlazoredLocalStorage();
 // Register our custom services
 builder.Services.AddScoped<IOrderService, OrderService>();
 builder.Services.AddScoped<IProductService, ProductService>();
-builder.Services.AddScoped<ICartService, CartService>();
 builder.Services.AddScoped<IAuthService, AuthService>();
+builder.Services.AddScoped<ICartService, CartService>();
 builder.Services.AddScoped<BlazorApp1.Infrastructure.Storage.ILocalStorageService>(provider => 
     new BlazorApp1.Infrastructure.Storage.LocalStorageService(provider.GetRequiredService<Blazored.LocalStorage.ILocalStorageService>()));
 

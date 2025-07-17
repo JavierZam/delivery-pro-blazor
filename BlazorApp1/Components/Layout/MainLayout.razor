@@ -1,5 +1,6 @@
 @inherits LayoutComponentBase
 @inject IAuthService AuthService
+@inject ICartService CartService
 @implements IDisposable
 
 <div class="min-h-screen bg-gray-50">
@@ -33,6 +34,7 @@
                         <!-- Authenticated User -->
                         <div class="flex items-center space-x-3">
                             <span class="text-sm text-gray-700">Hi, @currentUser.FirstName</span>
+                            <a href="/profile" class="btn btn-outline px-4 py-2">Profile</a>
                             <button @onclick="HandleLogout" class="btn btn-outline px-4 py-2">Sign Out</button>
                         </div>
                     }
@@ -94,6 +96,7 @@
                                 <div class="text-center py-2">
                                     <p class="text-gray-700 font-medium">Hi, @currentUser.FirstName!</p>
                                 </div>
+                                <a href="/profile" @onclick="CloseMobileMenu" class="btn btn-outline w-full text-center block">👤 My Profile</a>
                                 <button @onclick="HandleLogout" class="btn btn-outline w-full">Sign Out</button>
                                 <a href="/menu" @onclick="CloseMobileMenu" class="btn btn-primary w-full text-center block">Order Now</a>
                             }
@@ -179,7 +182,22 @@
     private void OnAuthStateChanged(User? user)
     {
         currentUser = user;
-        InvokeAsync(StateHasChanged);
+        
+        // Handle cart integration when auth state changes
+        InvokeAsync(async () =>
+        {
+            if (user != null)
+            {
+                // User logged in - transfer guest cart to user cart
+                await CartService.TransferGuestCartToUserAsync();
+            }
+            else
+            {
+                // User logged out - clear cart cache to show guest cart
+                await CartService.ClearUserCartCacheAsync();
+            }
+            StateHasChanged();
+        });
     }
 
     private void ToggleMobileMenu()
