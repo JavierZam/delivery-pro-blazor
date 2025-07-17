@@ -1,6 +1,4 @@
 @inherits LayoutComponentBase
-@inject IAuthService AuthService
-@inject ICartService CartService
 @implements IDisposable
 
 <div class="min-h-screen bg-gray-50">
@@ -169,14 +167,12 @@
 <CartDrawer IsOpen="isCartDrawerOpen" IsOpenChanged="@((bool value) => isCartDrawerOpen = value)" />
 
 @code {
+    [Inject] private IAuthService AuthService { get; set; } = default!;
+    [Inject] private ICartService CartService { get; set; } = default!;
+    
     private bool isMobileMenuOpen = false;
     private bool isCartDrawerOpen = false;
     private User? currentUser;
-
-    public MainLayout()
-    {
-        // Parameterless constructor required for component instantiation
-    }
 
     protected override async Task OnInitializedAsync()
     {
