@@ -1,0 +1,40 @@
+<svg width="512" height="512" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg">
+  <!-- Background -->
+  <rect width="512" height="512" rx="64" fill="#3B82F6"/>
+  
+  <!-- White circle background for icon -->
+  <circle cx="256" cy="256" r="180" fill="white"/>
+  
+  <!-- Delivery truck icon -->
+  <g transform="translate(150, 180)">
+    <!-- Truck body -->
+    <rect x="0" y="40" width="120" height="80" rx="8" fill="#3B82F6"/>
+    
+    <!-- Truck cab -->
+    <rect x="120" y="60" width="60" height="60" rx="8" fill="#2563EB"/>
+    
+    <!-- Wheels -->
+    <circle cx="40" cy="140" r="20" fill="#1E40AF"/>
+    <circle cx="140" cy="140" r="20" fill="#1E40AF"/>
+    
+    <!-- Wheel centers -->
+    <circle cx="40" cy="140" r="8" fill="white"/>
+    <circle cx="140" cy="140" r="8" fill="white"/>
+    
+    <!-- Windshield -->
+    <rect x="125" y="65" width="30" height="25" rx="4" fill="#93C5FD"/>
+    
+    <!-- Door -->
+    <rect x="130" y="95" width="20" height="20" rx="2" fill="#60A5FA"/>
+    
+    <!-- Speed lines -->
+    <g stroke="#60A5FA" stroke-width="3" stroke-linecap="round">
+      <line x1="-20" y1="50" x2="-5" y2="50"/>
+      <line x1="-25" y1="70" x2="-5" y2="70"/>
+      <line x1="-20" y1="90" x2="-5" y2="90"/>
+    </g>
+  </g>
+  
+  <!-- App name -->
+  <text x="256" y="420" text-anchor="middle" fill="white" font-family="Arial, sans-serif" font-size="36" font-weight="bold">DeliveryPro</text>
+</svg>

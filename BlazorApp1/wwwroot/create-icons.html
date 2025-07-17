@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Generate PWA Icons</title>
+</head>
+<body>
+    <h1>PWA Icon Generator</h1>
+    <button onclick="generateIcons()">Generate Icons</button>
+    <div id="output"></div>
+
+    <script>
+        function generateIcon(size) {
+            const canvas = document.createElement('canvas');
+            canvas.width = size;
+            canvas.height = size;
+            const ctx = canvas.getContext('2d');
+            
+            // Background gradient
+            const gradient = ctx.createRadialGradient(size/2, size/2, 0, size/2, size/2, size/2);
+            gradient.addColorStop(0, '#60A5FA');
+            gradient.addColorStop(1, '#3B82F6');
+            ctx.fillStyle = gradient;
+            ctx.fillRect(0, 0, size, size);
+            
+            // White circle background
+            ctx.fillStyle = 'rgba(255, 255, 255, 0.2)';
+            ctx.beginPath();
+            ctx.arc(size/2, size/2, size*0.4, 0, 2 * Math.PI);
+            ctx.fill();
+            
+            // Main icon - simplified delivery box
+            const scale = size / 512;
+            const centerX = size / 2;
+            const centerY = size / 2;
+            
+            // Box
+            ctx.fillStyle = '#FFFFFF';
+            ctx.fillRect(centerX - 60*scale, centerY - 40*scale, 120*scale, 80*scale);
+            
+            // Box shadow
+            ctx.fillStyle = 'rgba(0, 0, 0, 0.1)';
+            ctx.fillRect(centerX - 55*scale, centerY - 35*scale, 120*scale, 80*scale);
+            
+            // Box main
+            ctx.fillStyle = '#FFFFFF';
+            ctx.fillRect(centerX - 60*scale, centerY - 40*scale, 120*scale, 75*scale);
+            
+            // Box lines
+            ctx.strokeStyle = '#3B82F6';
+            ctx.lineWidth = 3*scale;
+            ctx.beginPath();
+            ctx.moveTo(centerX - 60*scale, centerY);
+            ctx.lineTo(centerX + 60*scale, centerY);
+            ctx.moveTo(centerX, centerY - 40*scale);
+            ctx.lineTo(centerX, centerY + 35*scale);
+            ctx.stroke();
+            
+            // Text
+            ctx.fillStyle = '#FFFFFF';
+            ctx.font = `bold ${Math.max(24, 24*scale)}px Arial, sans-serif`;
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText('DP', centerX, centerY + 80*scale);
+            
+            return canvas.toDataURL('image/png');
+        }
+        
+        function downloadBlob(blob, filename) {
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = filename;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        }
+        
+        function generateIcons() {
+            const output = document.getElementById('output');
+            output.innerHTML = '<p>Generating icons...</p>';
+            
+            // Generate 192x192
+            const icon192 = generateIcon(192);
+            const img192 = document.createElement('img');
+            img192.src = icon192;
+            img192.style.width = '96px';
+            img192.style.height = '96px';
+            img192.style.border = '1px solid #ccc';
+            img192.style.margin = '10px';
+            
+            // Generate 512x512
+            const icon512 = generateIcon(512);
+            const img512 = document.createElement('img');
+            img512.src = icon512;
+            img512.style.width = '96px';
+            img512.style.height = '96px';
+            img512.style.border = '1px solid #ccc';
+            img512.style.margin = '10px';
+            
+            // Create download buttons
+            const btn192 = document.createElement('button');
+            btn192.textContent = 'Download 192x192';
+            btn192.onclick = () => {
+                fetch(icon192)
+                    .then(res => res.blob())
+                    .then(blob => downloadBlob(blob, 'icon-192.png'));
+            };
+            
+            const btn512 = document.createElement('button');
+            btn512.textContent = 'Download 512x512';
+            btn512.onclick = () => {
+                fetch(icon512)
+                    .then(res => res.blob())
+                    .then(blob => downloadBlob(blob, 'icon-512.png'));
+            };
+            
+            output.innerHTML = '<h3>Generated Icons:</h3>';
+            output.appendChild(img192);
+            output.appendChild(btn192);
+            output.appendChild(document.createElement('br'));
+            output.appendChild(img512);
+            output.appendChild(btn512);
+            
+            // Show base64 for copy-paste
+            const textarea192 = document.createElement('textarea');
+            textarea192.value = icon192;
+            textarea192.style.width = '100%';
+            textarea192.style.height = '100px';
+            textarea192.style.marginTop = '10px';
+            
+            const textarea512 = document.createElement('textarea');
+            textarea512.value = icon512;
+            textarea512.style.width = '100%';
+            textarea512.style.height = '100px';
+            textarea512.style.marginTop = '10px';
+            
+            output.appendChild(document.createElement('h4')).textContent = '192x192 base64:';
+            output.appendChild(textarea192);
+            output.appendChild(document.createElement('h4')).textContent = '512x512 base64:';
+            output.appendChild(textarea512);
+        }
+    </script>
+</body>
+</html>
