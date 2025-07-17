@@ -15,11 +15,33 @@ async function onInstall(event) {
     console.info('Service worker: Install');
 
     // Fetch and cache all matching items from the assets manifest
-    const assetsRequests = self.assetsManifest.assets
+    const cache = await caches.open(cacheName);
+    const assetsToCache = self.assetsManifest.assets
         .filter(asset => offlineAssetsInclude.some(pattern => pattern.test(asset.url)))
-        .filter(asset => !offlineAssetsExclude.some(pattern => pattern.test(asset.url)))
-        .map(asset => new Request(asset.url, { integrity: asset.hash, cache: 'no-cache' }));
-    await caches.open(cacheName).then(cache => cache.addAll(assetsRequests));
+        .filter(asset => !offlineAssetsExclude.some(pattern => pattern.test(asset.url)));
+
+    // Cache assets individually with error handling for integrity mismatches
+    for (const asset of assetsToCache) {
+        try {
+            const request = new Request(asset.url, { cache: 'no-cache' });
+            const response = await fetch(request);
+            if (response.ok) {
+                await cache.put(request, response);
+            }
+        } catch (error) {
+            console.warn(`Failed to cache ${asset.url}:`, error);
+            // Try without integrity check as fallback
+            try {
+                const fallbackRequest = new Request(asset.url, { cache: 'no-cache' });
+                const fallbackResponse = await fetch(fallbackRequest);
+                if (fallbackResponse.ok) {
+                    await cache.put(fallbackRequest, fallbackResponse);
+                }
+            } catch (fallbackError) {
+                console.error(`Complete failure caching ${asset.url}:`, fallbackError);
+            }
+        }
+    }
 }
 
 async function onActivate(event) {
