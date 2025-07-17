@@ -1,0 +1,4 @@
+<linker>
+  <assembly fullname="BlazorApp1" preserve="all" />
+  <type fullname="BlazorApp1.Components.Layout.MainLayout" preserve="all" />
+</linker>

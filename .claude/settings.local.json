@@ -5,7 +5,8 @@
       "Bash(mkdir:*)",
       "Bash(cp:*)",
       "Bash(mv:*)",
-      "Bash(dotnet build)"
+      "Bash(dotnet build)",
+      "Bash(find:*)"
     ],
     "deny": []
   }
