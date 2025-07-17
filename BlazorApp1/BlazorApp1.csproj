@@ -11,6 +11,9 @@
     <TrimMode>link</TrimMode>
     <BlazorWebAssemblyPreserveCollationData>false</BlazorWebAssemblyPreserveCollationData>
     <BlazorEnableCompression>true</BlazorEnableCompression>
+    
+    <!-- CSS isolation fix -->
+    <GenerateStaticWebAssetsManifest>true</GenerateStaticWebAssetsManifest>
   </PropertyGroup>
 
   <ItemGroup>
